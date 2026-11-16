@@ -1,0 +1,691 @@
+
+% ==========================================
+% PHAN D - CAU HINH BGP
+% ==========================================
+
+\section{Phần D -- Cấu hình BGP}
+
+% ==========================================
+% A. MUC TIEU
+% ==========================================
+
+\subsection{Mục tiêu}
+
+Phần này triển khai giao thức Border Gateway
+Protocol (BGP) để thực hiện định tuyến giữa
+các Autonomous System (AS) trong mô hình
+Internet thu nhỏ, đồng thời trao đổi thông tin
+định tuyến giữa các router BGP thuộc cùng AS.
+
+\textbf{Các yêu cầu kỹ thuật bao gồm:}
+
+\begin{itemize}
+
+    \item Thiết lập các phiên eBGP trên
+    ba liên kết L4 (A2--B1), L5 (A3--C1)
+    và L9 (B3--C1), sử dụng địa chỉ IP
+    trực tiếp của các liên kết.
+
+    \item Thiết lập iBGP giữa A2 và A3
+    trong AS A, đồng thời cấu hình
+    iBGP full mesh giữa B1, B2 và B3
+    trong AS B.
+
+    \item Sử dụng địa chỉ Loopback0
+    để thiết lập các phiên iBGP.
+
+    \item Xử lý thuộc tính NEXT\_HOP
+    nhằm đảm bảo các router có thể
+    truy cập địa chỉ next-hop của
+    những tuyến BGP nhận được.
+
+    \item Quảng bá chính xác bốn mạng
+    LAN-A, LAN-B, LAN-C và LAN-D
+    theo phân công của đề bài.
+
+    \item Kiểm chứng trạng thái các
+    phiên BGP và khả năng kết nối
+    giữa sáu cặp mạng LAN.
+
+\end{itemize}
+
+
+% ==========================================
+% B. TRIEN KHAI CAU HINH
+% ==========================================
+
+\subsection{Triển khai cấu hình}
+
+\subsubsection{Nguyên tắc triển khai BGP}
+
+BGP được triển khai theo hai hình thức:
+
+\begin{itemize}
+
+    \item \textbf{eBGP:}
+    Thiết lập giữa các router thuộc
+    những AS khác nhau, sử dụng
+    địa chỉ IP của các liên kết trực tiếp.
+
+    \item \textbf{iBGP:}
+    Thiết lập giữa các router thuộc
+    cùng một AS, sử dụng địa chỉ
+    Loopback0 để tạo phiên BGP ổn định.
+
+\end{itemize}
+
+Các phiên eBGP cần thiết lập
+được trình bày trong Bảng
+\ref{tab:partD-ebgp}.
+
+\begin{table}[H]
+\centering
+\caption{Các phiên eBGP giữa những AS}
+\label{tab:partD-ebgp}
+\small
+\begin{tabularx}{\textwidth}{c c X X}
+\toprule
+\textbf{Link} &
+\textbf{AS} &
+\textbf{Router 1} &
+\textbf{Router 2} \\
+\midrule
+L4 & A--B &
+A2: 10.71.26.13 &
+B1: 10.71.26.14 \\
+
+L5 & A--C &
+A3: 10.71.26.17 &
+C1: 10.71.26.18 \\
+
+L9 & B--C &
+B3: 10.71.26.33 &
+C1: 10.71.26.34 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Đối với iBGP, AS A có một phiên
+A2--A3, trong khi AS B có ba phiên
+B1--B2, B1--B3 và B2--B3.
+
+Trước khi thiết lập iBGP,
+các địa chỉ Loopback0 phải có
+khả năng truy cập thông qua
+giao thức định tuyến nội bộ.
+
+Cụ thể, AS A sử dụng RIPv2
+và AS B sử dụng OSPF đã được
+triển khai trong các phần trước.
+
+
+% ==========================================
+% CAC LENH BGP CHINH
+% ==========================================
+
+\subsubsection{Giải thích các lệnh cấu hình BGP chính}
+
+Các lệnh BGP được sử dụng trong
+quá trình triển khai bao gồm:
+
+\begin{itemize}
+
+    \item \textbf{\texttt{router bgp <AS>}:}
+    Khởi tạo tiến trình BGP với
+    số Autonomous System tương ứng.
+
+    \item \textbf{\texttt{neighbor <IP> remote-as <AS>}:}
+    Khai báo địa chỉ IP của router
+    láng giềng và số AS của router đó.
+    Nếu hai router thuộc cùng AS,
+    phiên được thiết lập là iBGP;
+    nếu khác AS, phiên là eBGP.
+
+    \item \textbf{\texttt{neighbor <IP> update-source Loopback0}:}
+    Sử dụng địa chỉ Loopback0
+    làm địa chỉ nguồn cho phiên BGP.
+    Lệnh này được áp dụng cho
+    các phiên iBGP trong đồ án.
+
+    \item \textbf{\texttt{neighbor <IP> next-hop-self}:}
+    Thay đổi thuộc tính NEXT\_HOP
+    của các tuyến được quảng bá
+    cho láng giềng BGP, sử dụng
+    địa chỉ của chính router
+    đang gửi cập nhật làm next-hop.
+
+    Trong đồ án, lệnh này được sử dụng
+    trên các phiên iBGP để xử lý
+    những tuyến nhận từ AS bên ngoài.
+
+    \item \textbf{\texttt{network <IP> mask <MASK>}:}
+    Quảng bá một mạng vào BGP
+    khi có tuyến khớp chính xác
+    với địa chỉ mạng và subnet mask
+    trong bảng định tuyến IP.
+
+\end{itemize}
+
+Ví dụ, câu lệnh:
+
+\begin{lstlisting}
+network 10.171.126.64 mask 255.255.255.192
+\end{lstlisting}
+
+được sử dụng để quảng bá mạng LAN-B
+với prefix /26 vào BGP.
+
+Lệnh \texttt{network} không tự tạo
+một tuyến đường mới trong bảng
+định tuyến IP. Mạng được quảng bá
+phải có sẵn tuyến tương ứng
+trong Routing Information Base (RIB).
+
+
+% ==========================================
+% CAU HINH AS A
+% ==========================================
+
+\subsubsection{Cấu hình BGP trong AS A}
+
+AS A có hai router biên A2 và A3.
+A2 thiết lập eBGP với B1 thuộc AS B,
+trong khi A3 thiết lập eBGP với C1
+thuộc AS C.
+
+Đồng thời, A2 và A3 thiết lập
+iBGP với nhau thông qua địa chỉ
+Loopback0 để trao đổi thông tin
+định tuyến nhận được từ hai ISP.
+
+\textbf{Cấu hình trên router A2:}
+
+\begin{lstlisting}
+configure terminal
+
+router bgp 64626
+
+ neighbor 10.71.26.14 remote-as 64726
+
+ neighbor 10.171.26.3 remote-as 64626
+ neighbor 10.171.26.3 update-source Loopback0
+ neighbor 10.171.26.3 next-hop-self
+
+ network 10.171.126.0 mask 255.255.255.192
+
+end
+\end{lstlisting}
+
+\textbf{Cấu hình trên router A3:}
+
+\begin{lstlisting}
+configure terminal
+
+router bgp 64626
+
+ neighbor 10.71.26.18 remote-as 64826
+
+ neighbor 10.171.26.2 remote-as 64626
+ neighbor 10.171.26.2 update-source Loopback0
+ neighbor 10.171.26.2 next-hop-self
+
+ network 10.171.126.0 mask 255.255.255.192
+
+end
+\end{lstlisting}
+
+Hai router sử dụng địa chỉ
+Loopback0 để thiết lập iBGP,
+trong khi các phiên eBGP sử dụng
+địa chỉ trên liên kết L4 và L5.
+
+Lệnh \texttt{next-hop-self}
+được áp dụng cho phiên iBGP
+để các tuyến học từ ISP
+có next-hop là router biên
+tương ứng trong AS A.
+
+Cả A2 và A3 đều quảng bá mạng
+LAN-A \texttt{10.171.126.0/26}.
+Tuyến đến LAN-A phải được học
+thông qua RIPv2 và có mặt
+trong bảng định tuyến IP
+trước khi BGP quảng bá.
+
+
+% ==========================================
+% CAU HINH AS B
+% ==========================================
+
+\subsubsection{Cấu hình BGP trong AS B}
+
+AS B bao gồm ba router B1, B2
+và B3, được triển khai iBGP
+theo mô hình full mesh.
+
+Các phiên iBGP sử dụng Loopback0,
+trong khi eBGP được thiết lập
+trên B1 với A2 và trên B3 với C1.
+
+\textbf{Cấu hình trên router B1:}
+
+\begin{lstlisting}
+configure terminal
+
+router bgp 64726
+
+ neighbor 10.71.26.13 remote-as 64626
+
+ neighbor 10.171.26.5 remote-as 64726
+ neighbor 10.171.26.5 update-source Loopback0
+ neighbor 10.171.26.5 next-hop-self
+
+ neighbor 10.171.26.6 remote-as 64726
+ neighbor 10.171.26.6 update-source Loopback0
+ neighbor 10.171.26.6 next-hop-self
+
+end
+\end{lstlisting}
+
+Router B1 thiết lập eBGP với A2
+thông qua L4 và iBGP với B2, B3
+thông qua Loopback0.
+
+\textbf{Cấu hình trên router B2:}
+
+\begin{lstlisting}
+configure terminal
+
+router bgp 64726
+
+ neighbor 10.171.26.4 remote-as 64726
+ neighbor 10.171.26.4 update-source Loopback0
+ neighbor 10.171.26.4 next-hop-self
+
+ neighbor 10.171.26.6 remote-as 64726
+ neighbor 10.171.26.6 update-source Loopback0
+ neighbor 10.171.26.6 next-hop-self
+
+ network 10.171.126.64 mask 255.255.255.192
+ network 10.171.126.192 mask 255.255.255.192
+
+end
+\end{lstlisting}
+
+B2 thiết lập hai phiên iBGP
+với B1 và B3, đồng thời quảng bá
+hai mạng LAN:
+
+\begin{itemize}
+    \item LAN-B: \texttt{10.171.126.64/26}.
+    \item LAN-D: \texttt{10.171.126.192/26}.
+\end{itemize}
+
+LAN-B được kết nối trực tiếp
+thông qua Loopback1 của B2.
+
+Đối với LAN-D, B2 cần có
+static route đến mạng này
+thông qua D1, đã được triển khai
+trong Phần A.
+
+\textbf{Cấu hình trên router B3:}
+
+\begin{lstlisting}
+configure terminal
+
+router bgp 64726
+
+ neighbor 10.71.26.34 remote-as 64826
+
+ neighbor 10.171.26.4 remote-as 64726
+ neighbor 10.171.26.4 update-source Loopback0
+ neighbor 10.171.26.4 next-hop-self
+
+ neighbor 10.171.26.5 remote-as 64726
+ neighbor 10.171.26.5 update-source Loopback0
+ neighbor 10.171.26.5 next-hop-self
+
+end
+\end{lstlisting}
+
+Router B3 thiết lập eBGP với C1
+trên liên kết L9 và iBGP với
+B1, B2 thông qua Loopback0.
+
+
+% ==========================================
+% CAU HINH AS C
+% ==========================================
+
+\subsubsection{Cấu hình BGP trong AS C}
+
+AS C chỉ có một router C1,
+đóng vai trò ISP kết nối với
+AS A qua L5 và AS B qua L9.
+
+Do AS C chỉ có một router,
+không cần triển khai iBGP.
+
+Cấu hình trên router C1:
+
+\begin{lstlisting}
+configure terminal
+
+router bgp 64826
+
+ neighbor 10.71.26.17 remote-as 64626
+ neighbor 10.71.26.33 remote-as 64726
+
+ network 10.171.126.128 mask 255.255.255.192
+ network 10.171.126.192 mask 255.255.255.192
+
+end
+\end{lstlisting}
+
+Router C1 quảng bá LAN-C
+\texttt{10.171.126.128/26}
+và LAN-D \texttt{10.171.126.192/26}.
+
+LAN-C được kết nối trực tiếp
+thông qua Loopback1 của C1,
+trong khi LAN-D được truy cập
+thông qua static route đến D1
+đã cấu hình trong Phần A.
+
+
+% ==========================================
+% XU LY NEXT HOP
+% ==========================================
+
+\subsubsection{Xử lý thuộc tính NEXT\_HOP}
+
+Khi một router biên nhận tuyến
+từ eBGP và quảng bá tuyến đó
+cho láng giềng iBGP, thuộc tính
+NEXT\_HOP có thể tiếp tục giữ
+địa chỉ của router eBGP bên ngoài.
+
+Điều này có thể khiến các router
+nội bộ không truy cập được next-hop
+nếu mạng liên kết đến AS bên ngoài
+không được quảng bá vào IGP.
+
+Để giải quyết, nhóm sử dụng
+lệnh \texttt{next-hop-self}
+trên các phiên iBGP.
+
+Ví dụ, khi B1 nhận một tuyến
+từ A2 qua eBGP, B1 có thể
+quảng bá tuyến đó cho B2
+với NEXT\_HOP được thay thành
+địa chỉ Loopback0 của B1.
+
+Do các Loopback0 đã được quảng bá
+trong OSPF, B2 có thể tìm được
+đường đi đến next-hop này.
+
+Tương tự, trong AS A,
+A2 và A3 sử dụng
+\texttt{next-hop-self}
+để các tuyến học từ ISP
+có next-hop phù hợp với
+khả năng định tuyến nội bộ.
+
+Phương pháp này giúp tách biệt
+việc định tuyến nội bộ bằng
+RIPv2 hoặc OSPF với quá trình
+trao đổi tuyến giữa các AS
+thông qua BGP.
+
+
+% ==========================================
+% C. KIEM CHUNG KET QUA
+% ==========================================
+
+\subsection{Kiểm chứng kết quả}
+
+\subsubsection{Kiểm tra trạng thái phiên BGP}
+
+Sử dụng lệnh sau trên sáu router
+A2, A3, B1, B2, B3 và C1:
+
+\begin{lstlisting}
+show ip bgp summary
+\end{lstlisting}
+
+Lệnh này cung cấp danh sách
+các BGP Neighbor, số AS,
+trạng thái phiên và số lượng
+prefix được nhận.
+
+Khi phiên BGP đã thiết lập thành công,
+cột \texttt{State/PfxRcd} thường
+hiển thị số lượng prefix nhận được
+thay vì trạng thái
+\texttt{Idle}, \texttt{Active}
+hoặc \texttt{Connect}.
+
+Các phiên cần kiểm chứng:
+
+\begin{table}[H]
+\centering
+\caption{Các phiên BGP cần kiểm chứng}
+\label{tab:partD-sessions}
+\small
+\begin{tabular}{cccc}
+\toprule
+\textbf{Router 1} &
+\textbf{Router 2} &
+\textbf{Loại} &
+\textbf{Yêu cầu} \\
+\midrule
+A2 & B1 & eBGP & Established \\
+A3 & C1 & eBGP & Established \\
+B3 & C1 & eBGP & Established \\
+A2 & A3 & iBGP & Established \\
+B1 & B2 & iBGP & Established \\
+B1 & B3 & iBGP & Established \\
+B2 & B3 & iBGP & Established \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Anh bang chung BGP Summary
+% Doi ten anh theo file thuc te tren Overleaf
+
+\partzeroimage
+{images/configuration/part_D/A2_summary.png}
+{Trạng thái BGP Neighbor trên router A2}
+{fig:partD-A2-summary}
+
+\partzeroimage
+{images/configuration/part_D/A3_summary.png}
+{Trạng thái BGP Neighbor trên router A3}
+{fig:partD-A3-summary}
+
+\partzeroimage
+{images/configuration/part_D/B1_summary.png}
+{Trạng thái BGP Neighbor trên router B1}
+{fig:partD-B1-summary}
+
+\partzeroimage
+{images/configuration/part_D/B2_summary.png}
+{Trạng thái BGP Neighbor trên router B2}
+{fig:partD-B2-summary}
+
+\partzeroimage
+{images/configuration/part_D/B3_summary.png}
+{Trạng thái BGP Neighbor trên router B3}
+{fig:partD-B3-summary}
+
+\partzeroimage
+{images/configuration/part_D/C1_summary.png}
+{Trạng thái BGP Neighbor trên router C1}
+{fig:partD-C1-summary}
+
+
+% ==========================================
+% KIEM TRA BGP TABLE
+% ==========================================
+
+\subsubsection{Kiểm tra bảng định tuyến BGP}
+
+Sử dụng lệnh:
+
+\begin{lstlisting}
+show ip bgp
+\end{lstlisting}
+
+trên router A3 và B2 để kiểm tra
+các prefix BGP đã được quảng bá
+và nhận từ những AS khác.
+
+Các thông tin cần quan sát gồm:
+
+\begin{itemize}
+
+    \item \textbf{Network:}
+    Prefix mạng đích.
+
+    \item \textbf{Next Hop:}
+    Địa chỉ next-hop của tuyến BGP.
+
+    \item \textbf{Path:}
+    Thuộc tính AS\_PATH, biểu diễn
+    chuỗi AS mà thông tin tuyến
+    đã đi qua.
+
+    \item \textbf{Status:}
+    Ký hiệu \texttt{*} cho tuyến hợp lệ
+    và \texttt{>} cho tuyến tốt nhất
+    được BGP lựa chọn.
+
+\end{itemize}
+
+Các mạng LAN cần xuất hiện
+trong quá trình kiểm chứng gồm:
+
+\begin{table}[H]
+\centering
+\caption{Các mạng LAN được quảng bá vào BGP}
+\label{tab:partD-networks}
+\small
+\begin{tabularx}{\textwidth}{c X X}
+\toprule
+\textbf{LAN} &
+\textbf{Prefix} &
+\textbf{Router quảng bá} \\
+\midrule
+LAN-A & 10.171.126.0/26 & A2, A3 \\
+LAN-B & 10.171.126.64/26 & B2 \\
+LAN-C & 10.171.126.128/26 & C1 \\
+LAN-D & 10.171.126.192/26 & B2, C1 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\partzeroimage
+{images/configuration/part_D/A3_bgp.png}
+{Bảng BGP trên router A3}
+{fig:partD-A3-bgp}
+
+\partzeroimage
+{images/configuration/part_D/B2_bgp.png}
+{Bảng BGP trên router B2}
+{fig:partD-B2-bgp}
+
+
+% ==========================================
+% KIEM TRA KET NOI 4 LAN
+% ==========================================
+
+\subsubsection{Kiểm tra kết nối giữa các mạng LAN}
+
+Sau khi các phiên BGP được thiết lập,
+thực hiện kiểm tra kết nối giữa
+bốn mạng LAN-A, LAN-B, LAN-C và LAN-D.
+
+Việc kiểm tra sử dụng địa chỉ
+Loopback1 làm địa chỉ nguồn
+để mô phỏng lưu lượng phát sinh
+từ những mạng LAN.
+
+Các địa chỉ nguồn và đích
+được sử dụng:
+
+\begin{table}[H]
+\centering
+\caption{Địa chỉ dùng để kiểm tra kết nối LAN}
+\label{tab:partD-lan-address}
+\small
+\begin{tabular}{ccc}
+\toprule
+\textbf{LAN} &
+\textbf{Router} &
+\textbf{IP Loopback1} \\
+\midrule
+LAN-A & A1 & 10.171.126.1 \\
+LAN-B & B2 & 10.171.126.65 \\
+LAN-C & C1 & 10.171.126.129 \\
+LAN-D & D1 & 10.171.126.193 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Tổng cộng có sáu cặp LAN
+cần được kiểm tra:
+
+\begin{table}[H]
+\centering
+\caption{Danh sách kiểm tra kết nối giữa các LAN}
+\label{tab:partD-lan-ping}
+\small
+\begin{tabularx}{\textwidth}{c c X c}
+\toprule
+\textbf{STT} &
+\textbf{Nguồn} &
+\textbf{Đích} &
+\textbf{Kết quả} \\
+\midrule
+1 & LAN-A & LAN-B & Thành công \\
+2 & LAN-A & LAN-C & Thành công \\
+3 & LAN-A & LAN-D & Thành công \\
+4 & LAN-B & LAN-C & Thành công \\
+5 & LAN-B & LAN-D & Thành công \\
+6 & LAN-C & LAN-D & Thành công \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Ví dụ, để kiểm tra kết nối
+từ LAN-A đến LAN-B trên router A1:
+
+\begin{lstlisting}
+ping 10.171.126.65 source Loopback1
+\end{lstlisting}
+
+Lệnh này gửi gói ICMP đến LAN-B
+với địa chỉ nguồn là Loopback1
+của router A1.
+
+Các cặp LAN còn lại được kiểm tra
+theo phương pháp tương tự.
+
+% Anh ket qua ping 6 cap LAN
+
+\partzeroimage
+{images/configuration/part_D/LAN_A_BCD.png}
+{Kiểm tra kết nối giữa LAN-A tới LAN-B, LAN-C và LAN-D}
+{fig:partD-lan-A-B}
+
+
+\partzeroimage
+{images/configuration/part_D/LAN_B_CD.png}
+{Kiểm tra kết nối giữa LAN-B tới LAN-C và LAN-D}
+{fig:partD-lan-B-C}
+
+\partzeroimage
+{images/configuration/part_D/LAN_C_D.png}
+{Kiểm tra kết nối giữa LAN-C và LAN-D}
+{fig:partD-lan-C-D}

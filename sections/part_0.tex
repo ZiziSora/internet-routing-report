@@ -1,0 +1,441 @@
+\section{Phần 0 -- Cấu hình cơ bản}
+
+\subsection{Mục tiêu}
+
+Phần này thực hiện cấu hình cơ bản cho các router
+trong hệ thống mạng, bao gồm thiết lập hostname,
+gán địa chỉ IP cho các interface và cấu hình
+các giao diện Loopback theo quy hoạch địa chỉ
+của nhóm.
+
+\textbf{Các mục tiêu cụ thể bao gồm:}
+
+\begin{itemize}
+    \item Thiết lập hostname cho các router
+    theo đúng mã nhóm.
+
+    \item Cấu hình địa chỉ IPv4 cho các
+    interface kết nối giữa các router
+    theo sơ đồ topology.
+
+    \item Cấu hình interface Loopback0
+    trên tất cả các router và Loopback1
+    trên các router A1, B2, C1, D1.
+
+    \item Kích hoạt các interface cần thiết
+    và kiểm tra trạng thái hoạt động.
+
+    \item Kiểm tra khả năng kết nối trực tiếp
+    giữa các router thông qua lệnh
+    \texttt{ping}.
+\end{itemize}
+
+\subsection{Triển khai cấu hình}
+
+\subsubsection{Nguyên tắc cấu hình chung}
+
+Địa chỉ IP được phân bổ theo bảng quy hoạch
+địa chỉ của nhóm với mã K = 7126,
+X = 71 và Y = 26.
+
+Các nguyên tắc cấu hình được áp dụng như sau:
+
+\begin{itemize}
+    \item \textbf{Hostname:}
+    Đặt theo quy tắc
+    \texttt{<tên router>-7126}
+    để nhận diện thiết bị và mã nhóm
+    trong các kết quả kiểm chứng.
+
+    \item \textbf{Interface vật lý:}
+    Sử dụng các cổng FastEthernet0/0,
+    FastEthernet0/1 và FastEthernet1/0
+    tùy theo kết nối trên topology.
+    Các liên kết L1--L11 sử dụng
+    subnet mask /30
+    (255.255.255.252).
+
+    \item \textbf{Loopback0:}
+    Cấu hình trên cả 8 router với
+    subnet mask /32
+    (255.255.255.255),
+    đóng vai trò là địa chỉ định danh
+    ổn định của router.
+
+    \item \textbf{Loopback1:}
+    Chỉ cấu hình trên các router
+    A1, B2, C1 và D1,
+    đại diện cho bốn mạng LAN
+    tương ứng. Các mạng LAN
+    sử dụng subnet mask /26
+    (255.255.255.192).
+\end{itemize}
+
+Quy trình cấu hình chung được thực hiện
+thông qua các lệnh Cisco IOS sau:
+
+\begin{lstlisting}
+enable
+configure terminal
+
+hostname <router>-7126
+no ip domain-lookup
+
+interface <interface-name>
+ ip address <ip-address> <subnet-mask>
+ no shutdown
+ exit
+
+interface Loopback0
+ ip address <loopback-ip> 255.255.255.255
+ exit
+
+end
+write
+\end{lstlisting}
+
+Ý nghĩa của các lệnh chính:
+
+\begin{itemize}
+    \item \texttt{enable}:
+    Chuyển sang chế độ đặc quyền.
+
+    \item \texttt{config t}:
+    Truy cập chế độ cấu hình toàn cục.
+
+    \item \texttt{hostname}:
+    Thiết lập tên định danh cho router.
+
+    \item \texttt{no ip domain-lookup}:
+    Vô hiệu hóa việc phân giải DNS
+    khi nhập lệnh không hợp lệ,
+    tránh mất thời gian chờ.
+
+    \item \texttt{interface}:
+    Truy cập chế độ cấu hình của
+    interface được chỉ định.
+
+    \item \texttt{ip address}:
+    Gán địa chỉ IPv4 và subnet mask.
+
+    \item \texttt{no shutdown}:
+    Kích hoạt interface vật lý.
+
+    \item \texttt{write}:
+    Lưu cấu hình hiện tại để duy trì sau khi khởi động lại.
+\end{itemize}
+
+
+% ==========================================
+% CAU HINH MAU TREN B2
+% ==========================================
+
+\subsubsection{Cấu hình mẫu trên router B2}
+
+Router B2 thuộc AS B (AS 64726),
+được lựa chọn làm ví dụ minh họa
+vì có đầy đủ các loại interface
+cần thiết trong Phần 0.
+
+Cụ thể, B2 kết nối với B1 qua L6,
+B3 qua L7 và khách hàng D1 qua L11.
+Ngoài Loopback0, B2 còn được cấu hình
+Loopback1 để đại diện cho mạng LAN-B.
+
+Cấu hình cơ bản trên B2 như sau:
+
+\begin{lstlisting}
+enable
+configure terminal
+
+hostname B2-7126
+no ip domain-lookup
+
+interface FastEthernet0/0
+ ip address 10.71.26.22 255.255.255.252
+ no shutdown
+ exit
+
+interface FastEthernet0/1
+ ip address 10.71.26.25 255.255.255.252
+ no shutdown
+ exit
+
+interface FastEthernet1/0
+ ip address 10.71.26.41 255.255.255.252
+ no shutdown
+ exit
+
+interface Loopback0
+ ip address 10.171.26.5 255.255.255.255
+ exit
+
+interface Loopback1
+ ip address 10.171.126.65 255.255.255.192
+ exit
+
+end
+write
+\end{lstlisting}
+
+Trong cấu hình trên, ba interface
+FastEthernet tương ứng với các liên kết
+L6, L7 và L11 đã được phân bổ trong
+bảng địa chỉ IP của nhóm.
+
+Interface Loopback0 sử dụng địa chỉ
+\texttt{10.171.26.5/32} để định danh
+router B2.
+
+Interface Loopback1 sử dụng địa chỉ
+\texttt{10.171.126.65/26},
+thuộc mạng \texttt{10.171.126.64/26},
+đại diện cho LAN-B.
+
+Các interface vật lý được kích hoạt
+bằng lệnh \texttt{no shutdown}.
+Sau khi hoàn tất, cấu hình được lưu
+để phục vụ các bước triển khai
+định tuyến tiếp theo.
+
+
+% ==========================================
+% CAC ROUTER CON LAI
+% ==========================================
+
+\subsubsection{Cấu hình các router còn lại}
+
+Các router A1, A2, A3, B1, B3,
+C1 và D1 được triển khai theo cùng
+quy trình cấu hình đã trình bày,
+với địa chỉ IP và interface tương ứng
+theo bảng quy hoạch địa chỉ của nhóm.
+
+Trong đó:
+
+\begin{itemize}
+    \item \textbf{AS A:}
+    Gồm A1, A2 và A3.
+    Các kết nối nội bộ sử dụng L1--L3;
+    A2 kết nối B1 qua L4,
+    A3 kết nối C1 qua L5.
+    Router A1 có thêm Loopback1
+    đại diện cho LAN-A.
+
+    \item \textbf{AS B:}
+    Gồm B1, B2 và B3.
+    Các liên kết nội bộ L6--L8
+    tạo thành topology tam giác.
+    B1 kết nối AS A qua L4,
+    B3 kết nối AS C qua L9,
+    B2 kết nối D1 qua L11.
+
+    \item \textbf{AS C:}
+    Router C1 kết nối A3 qua L5,
+    B3 qua L9 và D1 qua L10.
+    Loopback1 của C1
+    đại diện cho LAN-C.
+
+    \item \textbf{Khách hàng D1:}
+    Kết nối C1 qua L10 và
+    B2 qua L11.
+    Loopback1 đại diện cho LAN-D.
+\end{itemize}
+
+Sau khi hoàn thành cấu hình,
+toàn bộ router được kiểm tra
+trạng thái interface và khả năng
+kết nối trực tiếp.
+
+\subsection{Kiểm chứng kết quả}
+
+\subsubsection{Kiểm tra địa chỉ và trạng thái interface}
+Trên từng router, thực hiện lệnh \texttt{show ip interface brief} để đối chiếu hostname, địa chỉ IPv4 và trạng thái các interface với bảng quy hoạch. Các interface vật lý có cáp kết nối và được kích hoạt đúng dự kiến sẽ có trạng thái \texttt{up/up}. Nếu một cổng ở trạng thái \texttt{administratively down}, cần kiểm tra lệnh \texttt{no shutdown}; nếu trạng thái đường truyền chưa lên, cần kiểm tra module và liên kết trên GNS3.
+
+\begin{lstlisting}
+show ip interface brief
+\end{lstlisting}
+
+\providecommand{\partzeroimage}[3]{%
+\begin{figure}[H]
+\centering
+\IfFileExists{#1}{%
+  \includegraphics[width=0.94\textwidth]{#1}%
+}{%
+  \fbox{\parbox[c][2.2cm][c]{0.88\textwidth}{\centering\footnotesize Chưa có ảnh: \texttt{\detokenize{#1}}}}%
+}%
+\caption{#2}\label{#3}
+\end{figure}
+}
+
+\partzeroimage{images/configuration/part_0/A1_interfaces.png}{Kết quả show ip interface brief trên A1-7126}{fig:part0-a1}
+\partzeroimage{images/configuration/part_0/A2_interfaces.png}{Kết quả show ip interface brief trên A2-7126}{fig:part0-a2}
+\partzeroimage{images/configuration/part_0/A3_interfaces.png}{Kết quả show ip interface brief trên A3-7126}{fig:part0-a3}
+\partzeroimage{images/configuration/part_0/B1_interfaces.png}{Kết quả show ip interface brief trên B1-7126}{fig:part0-b1}
+\partzeroimage{images/configuration/part_0/B2_interfaces.png}{Kết quả show ip interface brief trên B2-7126}{fig:part0-b2}
+\partzeroimage{images/configuration/part_0/B3_interfaces.png}{Kết quả show ip interface brief trên B3-7126}{fig:part0-b3}
+\partzeroimage{images/configuration/part_0/C1_interfaces.png}{Kết quả show ip interface brief trên C1-7126}{fig:part0-c1}
+\partzeroimage{images/configuration/part_0/D1_interfaces.png}{Kết quả show ip interface brief trên D1-7126}{fig:part0-d1}
+
+\subsubsection{Kiểm tra kết nối trực tiếp trên 11 liên kết}
+
+Để kiểm tra từng liên kết /30, thực hiện \texttt{ping} từ router thứ nhất đến địa chỉ interface của router thứ hai. Bảng \ref{tab:part0-ping} nêu đầy đủ 11 phép thử cần thực hiện. Cột kết quả phải được điền dựa trên output thực tế tại GNS3.
+
+\begin{table}[H]
+\centering
+\caption{Kiểm tra ping qua 11 liên kết trực tiếp}
+\label{tab:part0-ping}
+\footnotesize
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{c l l X l}
+\toprule
+\textbf{Link} & \textbf{Router nguồn} & \textbf{Router đích} & \textbf{IP đích} & \textbf{Kết quả} \\
+\midrule
+L1  & A1 & A2 & 10.71.26.2  & Thành công \\
+L2  & A1 & A3 & 10.71.26.6  & Thành công \\
+L3  & A2 & A3 & 10.71.26.10 & Thành công \\
+L4  & A2 & B1 & 10.71.26.14 & Thành công \\
+L5  & A3 & C1 & 10.71.26.18 & Thành công \\
+L6  & B1 & B2 & 10.71.26.22 & Thành công \\
+L7  & B2 & B3 & 10.71.26.26 & Thành công \\
+L8  & B1 & B3 & 10.71.26.30 & Thành công \\
+L9  & B3 & C1 & 10.71.26.34 & Thành công \\
+L10 & C1 & D1 & 10.71.26.38 & Thành công \\
+L11 & B2 & D1 & 10.71.26.42 & Thành công \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% L1: A1 - A2
+\partzeroimage{images/configuration/part_0/L1.png}
+{Kiểm tra kết nối L1 giữa A1 và A2}
+{fig:part0-ping-L1}
+
+% L2: A1 - A3
+\partzeroimage{images/configuration/part_0/L2.png}
+{Kiểm tra kết nối L2 giữa A1 và A3}
+{fig:part0-ping-L2}
+
+% L3: A2 - A3
+\partzeroimage{images/configuration/part_0/L3.png}
+{Kiểm tra kết nối L3 giữa A2 và A3}
+{fig:part0-ping-L3}
+
+% L4: A2 - B1
+\partzeroimage{images/configuration/part_0/L4.png}
+{Kiểm tra kết nối L4 giữa A2 và B1}
+{fig:part0-ping-L4}
+
+% L5: A3 - C1
+\partzeroimage{images/configuration/part_0/L5.png}
+{Kiểm tra kết nối L5 giữa A3 và C1}
+{fig:part0-ping-L5}
+
+% L6: B1 - B2
+\partzeroimage{images/configuration/part_0/L6.png}
+{Kiểm tra kết nối L6 giữa B1 và B2}
+{fig:part0-ping-L6}
+
+% L7: B2 - B3
+\partzeroimage{images/configuration/part_0/L7.png}
+{Kiểm tra kết nối L7 giữa B2 và B3}
+{fig:part0-ping-L7}
+
+% L8: B1 - B3
+\partzeroimage{images/configuration/part_0/L8.png}
+{Kiểm tra kết nối L8 giữa B1 và B3}
+{fig:part0-ping-L8}
+
+% L9: B3 - C1
+\partzeroimage{images/configuration/part_0/L9.png}
+{Kiểm tra kết nối L9 giữa B3 và C1}
+{fig:part0-ping-L9}
+
+% L10: C1 - D1
+\partzeroimage{images/configuration/part_0/L10.png}
+{Kiểm tra kết nối L10 giữa C1 và D1}
+{fig:part0-ping-L10}
+
+% L11: B2 - D1
+\partzeroimage{images/configuration/part_0/L11.png}
+{Kiểm tra kết nối L11 giữa B2 và D1}
+{fig:part0-ping-L11}
+
+% L1: A1 - A2
+\partzeroimage{images/configuration/part_0/L1.png}
+{Kiểm tra kết nối L1 giữa A1 và A2}
+{fig:part0-ping-L1}
+
+% L2: A1 - A3
+\partzeroimage{images/configuration/part_0/L2.png}
+{Kiểm tra kết nối L2 giữa A1 và A3}
+{fig:part0-ping-L2}
+
+% L3: A2 - A3
+\partzeroimage{images/configuration/part_0/L3.png}
+{Kiểm tra kết nối L3 giữa A2 và A3}
+{fig:part0-ping-L3}
+
+% L4: A2 - B1
+\partzeroimage{images/configuration/part_0/L4.png}
+{Kiểm tra kết nối L4 giữa A2 và B1}
+{fig:part0-ping-L4}
+
+% L5: A3 - C1
+\partzeroimage{images/configuration/part_0/L5.png}
+{Kiểm tra kết nối L5 giữa A3 và C1}
+{fig:part0-ping-L5}
+
+% L6: B1 - B2
+\partzeroimage{images/configuration/part_0/L6.png}
+{Kiểm tra kết nối L6 giữa B1 và B2}
+{fig:part0-ping-L6}
+
+% L7: B2 - B3
+\partzeroimage{images/configuration/part_0/L7.png}
+{Kiểm tra kết nối L7 giữa B2 và B3}
+{fig:part0-ping-L7}
+
+% L8: B1 - B3
+\partzeroimage{images/configuration/part_0/L8.png}
+{Kiểm tra kết nối L8 giữa B1 và B3}
+{fig:part0-ping-L8}
+
+% L9: B3 - C1
+\partzeroimage{images/configuration/part_0/L9.png}
+{Kiểm tra kết nối L9 giữa B3 và C1}
+{fig:part0-ping-L9}
+
+% L10: C1 - D1
+\partzeroimage{images/configuration/part_0/L10.png}
+{Kiểm tra kết nối L10 giữa C1 và D1}
+{fig:part0-ping-L10}
+
+% L11: B2 - D1
+\partzeroimage{images/configuration/part_0/L11.png}
+{Kiểm tra kết nối L11 giữa B2 và D1}
+{fig:part0-ping-L11}
+
+\subsubsection{Tổng hợp kết quả kiểm chứng}
+
+\begin{table}[H]
+\centering
+\caption{Đối chiếu yêu cầu của Phần 0}
+\label{tab:part0-summary}
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{l X l}
+\toprule
+\textbf{Hạng mục} & \textbf{Yêu cầu} & \textbf{Trạng thái} \\
+\midrule
+Hostname & Đúng định dạng \texttt{<router>-7126} trên 8 router & Thành công \\
+Loopback0 & Cấu hình đủ trên cả 8 router, mask /32 & Thành công \\
+Loopback1 & Có trên A1, B2, C1, D1, mask /26 & Thành công \\
+Liên kết vật lý & Địa chỉ /30 đúng trên cả 11 link & Thành công \\
+Interface & Có output \texttt{show ip interface brief} của 8 router & Thành công \\
+Kết nối & Ping thành công qua cả 11 link & Thành công \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\newpage

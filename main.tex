@@ -1,0 +1,38 @@
+
+\documentclass[12pt,a4paper]{report}
+
+% ==========================================
+% PREAMBLE
+% ==========================================
+
+\input{preamble/packages}
+\input{preamble/formatting}
+
+% ==========================================
+% DOCUMENT
+% ==========================================
+
+\begin{document}
+
+% Trang bìa
+\input{frontmatter/cover}
+% Bảng quy hoạch địa chỉ
+\input{frontmatter/ip_addressing}
+
+% Mục lục
+\pagenumbering{roman}
+\tableofcontents
+\listoffigures
+\listoftables
+
+% Nội dung báo cáo
+\clearpage
+\pagenumbering{arabic}
+
+\input{chapters/chapter1_overview}
+\input{chapters/chapter2_configuration}
+\input{chapters/chapter3_testing}
+\input{chapters/chapter4_advanced}
+\input{chapters/chapter5_conclusion}
+
+\end{document}

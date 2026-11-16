@@ -1,0 +1,118 @@
+
+% ==========================================
+% REPORT FORMATTING
+% ==========================================
+
+% Font
+\setmainfont{Times New Roman}
+
+% Paper margins
+\geometry{
+    a4paper,
+    top=2.5cm,
+    bottom=2.5cm,
+    left=3cm,
+    right=2cm
+}
+
+% Line spacing
+\onehalfspacing
+
+% Paragraph
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{4pt}
+
+% ==========================================
+% CHAPTER AND SECTION TITLES
+% ==========================================
+
+\titleformat{\chapter}[hang]
+    {\centering\bfseries\fontsize{16}{20}\selectfont}
+    {CHƯƠNG \thechapter.}
+    {0.5em}
+    {\MakeUppercase}
+
+\titlespacing*{\chapter}
+    {0pt}{0pt}{20pt}
+
+\titleformat{\section}
+    {\bfseries\fontsize{14}{18}\selectfont}
+    {\thesection.}
+    {0.5em}
+    {}
+
+\titleformat{\subsection}
+    {\bfseries\fontsize{13}{16}\selectfont}
+    {\thesubsection.}
+    {0.5em}
+    {}
+
+% ==========================================
+% FIGURE AND TABLE CAPTIONS
+% ==========================================
+
+\captionsetup{
+    font=small,
+    labelfont=bf,
+    justification=centering
+}
+
+\renewcommand{\figurename}{Hình}
+\renewcommand{\tablename}{Bảng}
+
+\numberwithin{figure}{chapter}
+\numberwithin{table}{chapter}
+
+% ==========================================
+% CISCO CONFIGURATION STYLE
+% ==========================================
+
+\definecolor{codebg}{RGB}{245,245,245}
+\definecolor{codecomment}{RGB}{80,120,80}
+
+\lstdefinestyle{cisco}{
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{codebg},
+    frame=single,
+    rulecolor=\color{gray!40},
+    breaklines=true,
+    columns=fullflexible,
+    keepspaces=true,
+    showstringspaces=false,
+    commentstyle=\color{codecomment},
+    morecomment=[l]{!},
+    xleftmargin=5pt,
+    xrightmargin=5pt
+}
+
+\lstset{style=cisco}
+
+% ==========================================
+% HEADER AND FOOTER
+% ==========================================
+
+\pagestyle{fancy}
+\fancyhf{}
+
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\fancypagestyle{plain}{
+    \fancyhf{}
+    \fancyfoot[C]{\thepage}
+    \renewcommand{\headrulewidth}{0pt}
+}
+
+% ==========================================
+% HYPERLINKS
+% ==========================================
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=blue,
+    pdftitle={Bao cao do an Internet Routing},
+    pdfauthor={Nhom sinh vien}
+}

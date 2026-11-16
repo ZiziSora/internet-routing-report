@@ -1,0 +1,289 @@
+
+% ==========================================
+% PHAN C - OSPF TRONG AS B
+% ==========================================
+
+\section{Phần C -- Cấu hình OSPF trong AS B}
+
+% ==========================================
+% A. MUC TIEU
+% ==========================================
+
+\subsection{Mục tiêu}
+
+Phần này triển khai giao thức định tuyến
+OSPF (Open Shortest Path First) trong
+hệ thống AS B, bao gồm ba router
+B1, B2 và B3.
+
+\textbf{Các yêu cầu kỹ thuật cần đạt:}
+
+\begin{itemize}
+    \item Cấu hình OSPF process 1,
+    area 0 trên cả ba router B1, B2 và B3.
+
+    \item Thiết lập OSPF trên ba liên kết
+    nội bộ L6, L7 và L8 để các router
+    có thể hình thành quan hệ láng giềng
+    và trao đổi thông tin định tuyến.
+
+    \item Kiểm chứng trạng thái
+    OSPF Neighbor và các tuyến
+    học được thông qua OSPF.
+\end{itemize}
+
+
+% ==========================================
+% B. TRIEN KHAI CAU HINH
+% ==========================================
+
+\subsection{Triển khai cấu hình}
+
+\subsubsection{Nguyên tắc cấu hình OSPF}
+
+AS B sử dụng giao thức OSPF làm giao thức
+định tuyến nội bộ (IGP), bao gồm ba router
+B1, B2 và B3 kết nối theo topology tam giác
+thông qua các liên kết L6, L7 và L8.
+
+Toàn bộ các liên kết nội bộ được cấu hình
+trong OSPF area 0. Mỗi router sử dụng
+địa chỉ Loopback0 làm Router ID.
+
+Nhóm sử dụng các câu lệnh \texttt{network}
+để chỉ định những mạng tham gia OSPF.
+Cụ thể, OSPF được kích hoạt trên các
+liên kết nội bộ L6--L8, các Loopback0
+và mạng LAN-B.
+
+\subsubsection{Giải thích các lệnh cấu hình OSPF chính}
+
+Trong quá trình triển khai OSPF trên các router
+B1, B2 và B3, nhóm sử dụng các lệnh cấu hình
+chính như sau:
+
+\begin{itemize}
+
+    \item \textbf{\texttt{router ospf 1}:}
+    Khởi tạo tiến trình định tuyến OSPF với
+    Process ID là 1. Process ID chỉ có ý nghĩa
+    cục bộ trên từng router, không bắt buộc
+    giống nhau giữa các router để hình thành
+    quan hệ láng giềng.
+
+    \item \textbf{\texttt{router-id A.B.C.D}:}
+    Thiết lập Router ID để định danh duy nhất
+    một router trong hệ thống OSPF.
+    Trong đồ án, Router ID được đặt bằng
+    địa chỉ Loopback0 của từng router nhằm
+    đảm bảo tính ổn định.
+
+    \item \textbf{\texttt{network A.B.C.D W.X.Y.Z area 0}:}
+    Chỉ định các interface có địa chỉ IP
+    phù hợp với địa chỉ mạng và wildcard mask
+    để tham gia tiến trình OSPF trong area 0.
+
+    Wildcard mask được xác định bằng cách
+    lấy 255.255.255.255 trừ subnet mask.
+
+    Ví dụ, với mạng 10.71.26.20/30,
+    subnet mask là 255.255.255.252,
+    do đó wildcard mask là 0.0.0.3.
+
+    \begin{lstlisting}
+network 10.71.26.20 0.0.0.3 area 0
+    \end{lstlisting}
+
+    Lệnh trên kích hoạt OSPF trên interface
+    có địa chỉ thuộc mạng 10.71.26.20/30,
+    tương ứng với liên kết L6 giữa B1 và B2.
+
+    \item \textbf{\texttt{ip ospf network point-to-point}:}
+    Thiết lập kiểu mạng OSPF của interface
+    thành point-to-point.
+
+    Trong đồ án, lệnh này được sử dụng
+    trên Loopback1 của B2 nhằm đảm bảo
+    mạng LAN-B được quảng bá với prefix
+    /26 thay vì host route /32 như
+    hành vi mặc định của OSPF trên Loopback.
+
+    \begin{lstlisting}
+interface Loopback1
+ ip ospf network point-to-point
+    \end{lstlisting}
+
+\end{itemize}
+
+
+% ==========================================
+% CAU HINH B1
+% ==========================================
+
+\subsubsection{Cấu hình OSPF trên router B1}
+
+\begin{lstlisting}
+config t
+router ospf 1
+ router-id 10.171.26.4
+ network 10.71.26.20 0.0.0.3 area 0
+ network 10.71.26.28 0.0.0.3 area 0
+ network 10.171.26.4 0.0.0.0 area 0
+end
+\end{lstlisting}
+
+% ==========================================
+% CAU HINH B2
+% ==========================================
+
+\subsubsection{Cấu hình OSPF trên router B2}
+
+
+\begin{lstlisting}
+config t
+interface Loopback1
+ ip ospf network point-to-point
+exit
+
+router ospf 1
+ router-id 10.171.26.5
+ network 10.71.26.20 0.0.0.3 area 0
+ network 10.71.26.24 0.0.0.3 area 0
+ network 10.171.26.5 0.0.0.0 area 0
+ network 10.171.126.64 0.0.0.63 area 0
+end
+\end{lstlisting}
+
+% ==========================================
+% CAU HINH B3
+% ==========================================
+
+\subsubsection{Cấu hình OSPF trên router B3}
+
+
+\begin{lstlisting}
+config t
+router ospf 1
+ router-id 10.171.26.6
+ network 10.71.26.24 0.0.0.3 area 0
+ network 10.71.26.28 0.0.0.3 area 0
+ network 10.171.26.6 0.0.0.0 area 0
+end
+\end{lstlisting}
+
+
+
+% ==========================================
+% C. KIEM CHUNG KET QUA
+% ==========================================
+
+\subsection{Kiểm chứng kết quả}
+
+\subsubsection{Kiểm tra quan hệ OSPF Neighbor}
+
+\begin{table}[H]
+\centering
+\caption{Các quan hệ OSPF Neighbor cần kiểm chứng}
+\label{tab:partC-neighbor}
+\small
+\begin{tabularx}{\textwidth}{c c X c}
+\toprule
+\textbf{Router} &
+\textbf{Neighbor} &
+\textbf{Liên kết} &
+\textbf{Trạng thái yêu cầu} \\
+\midrule
+B1 & B2 & L6 & FULL \\
+B1 & B3 & L8 & FULL \\
+B2 & B1 & L6 & FULL \\
+B2 & B3 & L7 & FULL \\
+B3 & B1 & L8 & FULL \\
+B3 & B2 & L7 & FULL \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Trạng thái FULL cho biết
+hai router đã hoàn tất quá trình
+đồng bộ cơ sở dữ liệu trạng thái
+liên kết (LSDB).
+
+Mỗi quan hệ láng giềng được
+hiển thị từ cả hai phía, do đó
+ba liên kết nội bộ tương ứng
+với ba cặp quan hệ Neighbor.
+
+% ------------------------------------------
+% HINH OSPF NEIGHBOR
+% ------------------------------------------
+
+\partzeroimage
+{images/configuration/part_C/B1_neighbor.png}
+{Danh sách OSPF Neighbor trên router B1}
+{fig:partC-B1-neighbor}
+
+\partzeroimage
+{images/configuration/part_C/B2_neighbor.png}
+{Danh sách OSPF Neighbor trên router B2}
+{fig:partC-B2-neighbor}
+
+\partzeroimage
+{images/configuration/part_C/B3_neighbor.png}
+{Danh sách OSPF Neighbor trên router B3}
+{fig:partC-B3-neighbor}
+
+\newpage
+
+% ==========================================
+% KIEM TRA ROUTING TABLE
+% ==========================================
+
+\subsubsection{Kiểm tra bảng định tuyến OSPF}
+
+Để kiểm tra các tuyến đường
+được học thông qua OSPF,
+thực hiện lệnh sau trên B2:
+
+\begin{lstlisting}
+show ip route ospf
+\end{lstlisting}
+
+Các tuyến học được thông qua
+OSPF sẽ có ký hiệu \texttt{O}
+trong bảng định tuyến.
+
+Đối với B2, những mạng đã kết nối
+trực tiếp qua L6 và L7 được hiển thị
+dưới dạng Connected (C),
+không phải tuyến OSPF.
+
+Ngược lại, mạng L8 kết nối
+giữa B1 và B3 và các Loopback0
+của B1, B3 có thể được học
+thông qua OSPF.
+
+Các thông tin quan trọng
+trong bảng định tuyến gồm:
+
+\begin{itemize}
+    \item \textbf{Destination:}
+    Mạng đích được học.
+
+    \item \textbf{Administrative Distance:}
+    Giá trị AD mặc định của OSPF
+    là 110.
+
+    \item \textbf{Metric:}
+    Chi phí OSPF để đến mạng đích.
+
+    \item \textbf{Next-hop:}
+    Địa chỉ router kế tiếp
+    trên đường đến mạng đích.
+\end{itemize}
+
+\partzeroimage
+{images/configuration/part_C/B2_route_ospf.png}
+{Các tuyến đường OSPF học được trên router B2}
+{fig:partC-B2-route}
+
+\newpage

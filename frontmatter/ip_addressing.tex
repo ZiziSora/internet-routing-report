@@ -1,0 +1,399 @@
+
+% ==========================================
+% ADDRESS MAPPING - K = 7126
+% ==========================================
+
+\clearpage
+\begingroup
+
+% Dinh dang rieng cho phan bang dia chi
+\setstretch{1.05}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\renewcommand{\arraystretch}{1.3}
+\setlength{\tabcolsep}{4pt}
+
+% ==========================================
+% PAGE 1
+% ==========================================
+
+\begin{center}
+{\fontsize{15}{19}\selectfont\bfseries
+BẢNG QUY HOẠCH ĐỊA CHỈ IP VÀ SỐ AS}
+\end{center}
+
+\vspace{0.35cm}
+
+{\bfseries\large
+1. Mã nhóm và quy tắc địa chỉ
+}
+
+\vspace{0.15cm}
+
+Mã nhóm \textbf{K = 7126};
+\textbf{X = 71}; \textbf{Y = 26}.
+Các bảng dưới đây đã thay địa chỉ,
+số AS và hostname theo mã nhóm.
+
+\vspace{0.2cm}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|X|X|}
+\hline
+\textbf{Thành phần} &
+\hline
+11 link giữa các router &
+10.71.26.0/24, chia thành 11 mạng /30 \\
+\hline
+Loopback0 của router số n &
+10.171.26.n/32 ($n = 1,\ldots,8$) \\
+\hline
+4 mạng LAN (Loopback1) &
+10.171.126.0/24, chia thành 4 mạng /26 \\
+\hline
+Số AS của AS A, AS B, AS C &
+64626, 64726, 64826 \\
+\hline
+Hostname &
+\texttt{<tên router>-7126}
+(ví dụ A1-7126, B2-7126) \\
+\hline
+\end{tabularx}
+\end{table}
+
+\vspace{0.2cm}
+
+{\bfseries\large
+2. Nối dây và địa chỉ
+}
+
+\vspace{0.15cm}
+
+Mỗi router dùng tối đa 3 cổng:
+Fa0/0, Fa0/1 (có sẵn) và Fa1/0
+(card NM-1FE-TX ở slot 1).
+Link Lk dùng mạng
+10.71.26.[4 $\times$ (k -- 1)]/30;
+router ghi trước lấy địa chỉ đầu,
+router ghi sau lấy địa chỉ thứ hai.
+
+\vspace{0.2cm}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.5}
+\setlength{\extrarowheight}{3pt}
+\setlength{\tabcolsep}{3pt}
+
+\begin{tabularx}{\textwidth}{
+|c|l|l|l|>{\raggedright\arraybackslash}X|l|
+}
+\hline
+
+\textbf{Link} &
+\textbf{Router 1} &
+\textbf{Router 2} &
+\textbf{Mạng /30} &
+\textbf{IP R1 / IP R2} &
+\textbf{Loại} \\
+\hline
+
+L1 &
+A1 (Fa0/0) &
+A2 (Fa0/0) &
+10.71.26.0 &
+\makecell[l]{10.71.26.1\\10.71.26.2} &
+RIPv2 \\
+\hline
+
+L2 &
+A1 (Fa0/1) &
+A3 (Fa0/0) &
+10.71.26.4 &
+\makecell[l]{10.71.26.5\\10.71.26.6} &
+RIPv2 \\
+\hline
+
+L3 &
+A2 (Fa0/1) &
+A3 (Fa0/1) &
+10.71.26.8 &
+\makecell[l]{10.71.26.9\\10.71.26.10} &
+RIPv2 \\
+\hline
+
+L4 &
+A2 (Fa1/0) &
+B1 (Fa0/0) &
+10.71.26.12 &
+\makecell[l]{10.71.26.13\\10.71.26.14} &
+eBGP A--B \\
+\hline
+
+L5 &
+A3 (Fa1/0) &
+C1 (Fa0/1) &
+10.71.26.16 &
+\makecell[l]{10.71.26.17\\10.71.26.18} &
+eBGP A--C \\
+\hline
+
+L6 &
+B1 (Fa0/1) &
+B2 (Fa0/0) &
+10.71.26.20 &
+\makecell[l]{10.71.26.21\\10.71.26.22} &
+OSPF \\
+\hline
+
+L7 &
+B2 (Fa0/1) &
+B3 (Fa0/0) &
+10.71.26.24 &
+\makecell[l]{10.71.26.25\\10.71.26.26} &
+OSPF \\
+\hline
+
+L8 &
+B1 (Fa1/0) &
+B3 (Fa0/1) &
+10.71.26.28 &
+\makecell[l]{10.71.26.29\\10.71.26.30} &
+OSPF \\
+\hline
+
+L9 &
+B3 (Fa1/0) &
+C1 (Fa0/0) &
+10.71.26.32 &
+\makecell[l]{10.71.26.33\\10.71.26.34} &
+eBGP B--C \\
+\hline
+
+L10 &
+C1 (Fa1/0) &
+D1 (Fa0/0) &
+10.71.26.36 &
+\makecell[l]{10.71.26.37\\10.71.26.38} &
+\makecell[l]{Static\\Chính} \\
+\hline
+
+L11 &
+B2 (Fa1/0) &
+D1 (Fa0/1) &
+10.71.26.40 &
+\makecell[l]{10.71.26.41\\10.71.26.42} &
+\makecell[l]{Static\\Dự phòng} \\
+\hline
+
+\end{tabularx}
+\end{table}
+
+{\footnotesize
+\textit{
+Tất cả 11 link dùng subnet mask
+255.255.255.252 (/30).
+Trong cột IP, dòng trên là Router 1,
+dòng dưới là Router 2.
+}
+}
+
+% ==========================================
+% PAGE 2
+% ==========================================
+
+\clearpage
+
+{\bfseries\large
+3. Địa chỉ Loopback và LAN
+}
+
+\vspace{0.2cm}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.65}
+\setlength{\tabcolsep}{4pt}
+
+\begin{tabularx}{\textwidth}{
+|l|c|>{\raggedright\arraybackslash}X|l|
+>{\raggedright\arraybackslash}p{4.1cm}|
+}
+\hline
+
+\textbf{Router} &
+\textbf{n} &
+\textbf{Vai trò} &
+\textbf{Loopback0} &
+\textbf{Loopback1 = LAN} \\
+\hline
+
+A1-7126 & 1 &
+AS A, nội bộ &
+10.171.26.1 &
+LAN-A: 10.171.126.1
+\newline Mạng 10.171.126.0/26 \\
+\hline
+
+A2-7126 & 2 &
+AS A, biên, nối ISP B &
+10.171.26.2 &
+-- \\
+\hline
+
+A3-7126 & 3 &
+AS A, biên, nối ISP C &
+10.171.26.3 &
+-- \\
+\hline
+
+B1-7126 & 4 &
+AS B, biên, nối AS A &
+10.171.26.4 &
+-- \\
+\hline
+
+B2-7126 & 5 &
+AS B, nội bộ, nối khách hàng D1 &
+10.171.26.5 &
+LAN-B: 10.171.126.65
+\newline Mạng 10.171.126.64/26 \\
+\hline
+
+B3-7126 & 6 &
+AS B, biên, nối AS C &
+10.171.26.6 &
+-- \\
+\hline
+
+C1-7126 & 7 &
+AS C (ISP), biên &
+10.171.26.7 &
+LAN-C: 10.171.126.129
+\newline Mạng 10.171.126.128/26 \\
+\hline
+
+D1-7126 & 8 &
+Khách hàng, không chạy giao thức định tuyến &
+10.171.26.8 &
+LAN-D: 10.171.126.193
+\newline Mạng 10.171.126.192/26 \\
+\hline
+
+\end{tabularx}
+\end{table}
+
+{\footnotesize
+\textit{
+Loopback0 dùng subnet mask
+255.255.255.255 (/32);
+Loopback1 dùng 255.255.255.192 (/26).
+Router không có LAN không cấu hình Loopback1.
+}
+}
+
+\vspace{0.4cm}
+
+{\bfseries\large
+4. Tóm tắt bốn mạng LAN
+}
+
+\vspace{0.2cm}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{
+|c|l|X|X|
+}
+\hline
+
+\textbf{LAN} &
+\textbf{Router} &
+\textbf{Mạng LAN (/26)} &
+\textbf{IP Loopback1 (/26)} \\
+\hline
+
+LAN-A & A1-7126 &
+10.171.126.0/26 &
+10.171.126.1/26 \\
+\hline
+
+LAN-B & B2-7126 &
+10.171.126.64/26 &
+10.171.126.65/26 \\
+\hline
+
+LAN-C & C1-7126 &
+10.171.126.128/26 &
+10.171.126.129/26 \\
+\hline
+
+LAN-D & D1-7126 &
+10.171.126.192/26 &
+10.171.126.193/26 \\
+\hline
+
+\end{tabularx}
+\end{table}
+
+\vspace{0.4cm}
+
+{\bfseries\large
+5. Địa chỉ peer eBGP và next-hop static
+}
+
+\vspace{0.2cm}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{
+|l|X|X|
+}
+\hline
+
+\textbf{Link} &
+\textbf{Phía 1} &
+\textbf{Phía 2} \\
+\hline
+
+L4 -- eBGP A--B &
+A2-7126: 10.71.26.13 &
+B1-7126: 10.71.26.14 \\
+\hline
+
+L5 -- eBGP A--C &
+A3-7126: 10.71.26.17 &
+C1-7126: 10.71.26.18 \\
+\hline
+
+L9 -- eBGP B--C &
+B3-7126: 10.71.26.33 &
+C1-7126: 10.71.26.34 \\
+\hline
+
+L10 -- Static chính &
+C1-7126: 10.71.26.37 &
+D1-7126: 10.71.26.38 \\
+\hline
+
+L11 -- Static dự phòng &
+B2-7126: 10.71.26.41 &
+D1-7126: 10.71.26.42 \\
+\hline
+
+\end{tabularx}
+\end{table}
+
+\vspace{0.2cm}
+
+\vfill
+
+
+\endgroup
+\clearpage
