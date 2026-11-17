@@ -1,0 +1,186 @@
+% ==========================================
+% N3 - GIAM TIMER BGP TREN L4
+% ==========================================
+
+\section{N3 -- Giảm timer BGP trên liên kết L4}
+
+\subsection{Mục tiêu}
+
+Trong F4, thời gian gián đoạn khi chỉ tắt
+đầu A2 dài hơn nhiều so với khi tắt cả hai đầu.
+Nhóm giảm timer BGP trên L4 để B1
+phát hiện mất kết nối sớm hơn trong trường hợp
+interface của nó vẫn ở trạng thái \texttt{up/up}.
+Sau đó, nhóm lặp lại phép thử và so sánh với F4.
+
+\subsection{Triển khai cấu hình}
+
+Cấu hình ban đầu dùng Keepalive Interval
+60 giây và Hold Time 180 giây.
+Nhóm thay đổi hai giá trị này bằng lệnh:
+
+\begin{lstlisting}
+neighbor <IP-neighbor> timers 10 30
+\end{lstlisting}
+
+Trong đó, 10 giây là khoảng thời gian
+gửi bản tin KEEPALIVE định kỳ;
+30 giây là Hold Time đề xuất cho phiên BGP.
+Nếu không nhận được bản tin KEEPALIVE hoặc UPDATE
+trong khoảng Hold Time đã thương lượng,
+router sẽ kết luận phiên không còn hoạt động.
+Nhóm cấu hình trên cả hai đầu L4
+và kiểm tra timer thực tế sau khi
+phiên được thiết lập lại.
+
+\textbf{Trên A2:}
+
+\begin{lstlisting}
+conf t
+router bgp 64626
+ neighbor 10.71.26.14 timers 10 30
+end
+\end{lstlisting}
+
+\textbf{Trên B1:}
+
+\begin{lstlisting}
+conf t
+router bgp 64726
+ neighbor 10.71.26.13 timers 10 30
+end
+\end{lstlisting}
+
+Nhóm dùng các lệnh sau để kiểm tra
+trạng thái và timer của phiên:
+
+\begin{lstlisting}
+! A2
+show ip bgp neighbors 10.71.26.14
+
+! B1
+show ip bgp neighbors 10.71.26.13
+\end{lstlisting}
+
+\partzeroimage
+{images/advanced/N3/A2_bgp_timers.png}
+{Timer của phiên eBGP tới B1 trên A2 sau khi thay đổi}
+{fig:N3-a2-timers}
+
+\partzeroimage
+{images/advanced/N3/B1_bgp_timers.png}
+{Timer của phiên eBGP tới A2 trên B1 sau khi thay đổi}
+{fig:N3-b1-timers}
+
+Cả hai output đều cho thấy phiên ở trạng thái
+\texttt{Established}, \texttt{hold time is 30}
+và \texttt{keepalive interval is 10 seconds}.
+Đây là timer đang có hiệu lực trên phiên,
+không chỉ là giá trị được ghi trong cấu hình.
+
+\subsection{Thử lỗi và ghi nhận kết quả}
+
+Nhóm giữ cách đo như F4:
+ping liên tục từ A1 tới LAN-C,
+dùng Loopback1 làm địa chỉ nguồn:
+
+\begin{lstlisting}
+ping 10.171.126.129 source Loopback1 repeat 1000 timeout 1
+\end{lstlisting}
+
+Khi mạng đã ổn định và ưu tiên đường qua B,
+nhóm lần lượt thử chỉ tắt FastEthernet1/0
+trên A2, rồi thử tắt cả cổng này và
+FastEthernet0/0 trên B1.
+Các lệnh \texttt{shutdown} giống F4.
+Sau mỗi lần thử, nhóm bật lại các cổng
+bằng \texttt{no shutdown}, chờ phiên eBGP
+được thiết lập và mạng hội tụ trước lần tiếp theo.
+
+\subsubsection{Chỉ tắt đầu A2}
+
+\partzeroimage
+{images/advanced/N3/one_end_failure_start.png}
+{Mốc gây lỗi phía A2 sau khi giảm timer: 00:12:02.122}
+{fig:N3-one-start}
+
+\partzeroimage
+{images/advanced/N3/one_end_ping_recovered.png}
+{Mốc ping trở lại khi chỉ tắt đầu A2: 00:12:31.003}
+{fig:N3-one-recovered}
+
+Từ hai mốc trên đồng hồ bản ghi,
+thời gian ping phục hồi là
+\textbf{28,881 giây}.
+
+\subsubsection{Tắt cả hai đầu L4}
+
+\partzeroimage
+{images/advanced/N3/both_ends_failure_start.png}
+{Mốc bắt đầu thử lỗi ở cả hai đầu sau khi giảm timer: 00:14:03.433}
+{fig:N3-both-start}
+
+\partzeroimage
+{images/advanced/N3/both_ends_ping_recovered.png}
+{Mốc ping trở lại khi tắt cả hai đầu: 00:14:04.616}
+{fig:N3-both-recovered}
+
+Thời gian ping phục hồi trong lần thử này
+là \textbf{1,183 giây}.
+
+\subsection{So sánh với F4}
+
+\begin{table}[H]
+\centering
+\caption{So sánh thời gian phục hồi trước và sau khi giảm timer BGP}
+\label{tab:N3-comparison}
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{X c c}
+\toprule
+\textbf{Trường hợp} &
+\makecell{\textbf{F4: timer 60/180}\\\textbf{Thời gian (s)}} &
+\makecell{\textbf{N3: timer 10/30}\\\textbf{Thời gian (s)}} \\
+\midrule
+Chỉ tắt đầu A2 & 176,876 & 28,881 \\
+Tắt cả hai đầu & 1,050 & 1,183 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Khi giảm Hold Time xuống 30 giây,
+thời gian gián đoạn ở trường hợp chỉ tắt
+một đầu giảm rõ rệt, từ 176,876 xuống
+28,881 giây.
+B1 có thể kết luận mất kết nối sớm hơn,
+không phải chờ theo Hold Time 180 giây như trước.
+Keepalive Interval 10 giây giúp bản tin
+duy trì phiên được gửi thường xuyên hơn,
+phù hợp với Hold Time ngắn hơn;
+giá trị Hold Time mới là giới hạn chờ
+để kết luận phiên mất hoạt động.
+
+Thời gian phát hiện lỗi không nhất thiết
+bằng đúng 30 giây tính từ lúc shutdown,
+vì Hold Timer tính từ bản tin BGP hợp lệ
+cuối cùng nhận được.
+Phần thời gian còn lại của timer
+phụ thuộc thời điểm gây lỗi.
+Ngoài ra, số đo ping còn bao gồm
+thời gian cập nhật tuyến và phục hồi
+đường đi, đường về như đã phân tích
+ở Mục \ref{sec:F4}.
+
+Ở trường hợp tắt cả hai đầu,
+hai router đều phát hiện interface của mình down
+và có thể ngắt phiên ngay nhờ
+Fast External Fallover,
+không cần đợi Hold Time.
+Vì vậy, giảm timer không tạo ra
+khác biệt rõ rệt trong các lần đo này:
+thời gian phục hồi vẫn xấp xỉ 1 giây.
+Chênh lệch giữa 1,050 và 1,183 giây
+chưa đủ để kết luận cấu hình mới chậm hơn,
+vì đây là các lần đo riêng trên môi trường mô phỏng.
+
+\newpage
