@@ -1,0 +1,186 @@
+% ==========================================
+% PHAN B - RIPV2 TRONG AS A
+% ==========================================
+
+\section{Phần B -- Cấu hình RIPv2 trong AS A}
+
+\subsection{Mục tiêu}
+
+Phần này cấu hình RIPv2 trên A1, A2 và A3
+để trao đổi các tuyến nội bộ trong AS A,
+bao gồm LAN-A và các địa chỉ Loopback0.
+A2 và A3 đều quảng bá default route vào RIP
+để A1 có đường đi tới các mạng bên ngoài.
+Các bản tin cập nhật RIP chỉ được gửi
+trên ba liên kết nội bộ L1--L3.
+
+\subsection{Triển khai cấu hình}
+
+\subsubsection{Ý nghĩa các lệnh chính}
+
+Trong Cisco IOS, lệnh \texttt{network} của RIP
+sử dụng địa chỉ mạng theo lớp (classful).
+Lệnh này bật RIP trên các interface có
+địa chỉ thuộc mạng được khai báo.
+Ở bài này, các địa chỉ interface đều thuộc
+mạng lớp A \texttt{10.0.0.0/8}, nên nhóm dùng:
+
+\begin{lstlisting}
+network 10.0.0.0
+\end{lstlisting}
+
+Việc khai báo theo mạng classful không có nghĩa
+các tuyến được gửi đi đều mang mask /8.
+Nhóm dùng \texttt{version 2} để bản tin RIP
+mang thông tin subnet mask, đồng thời dùng
+\texttt{no auto-summary} để tắt cơ chế
+tự động tổng hợp tuyến theo ranh giới lớp mạng.
+Nhờ đó, các subnet /30, /32 và /26
+được trao đổi với đúng subnet mask.
+
+Do các cổng nối sang AS khác cũng có địa chỉ
+thuộc \texttt{10.0.0.0/8}, cần giới hạn
+những interface được gửi cập nhật RIP:
+
+\begin{itemize}
+    \item \texttt{passive-interface default}:
+    Không gửi bản tin cập nhật RIP
+    ra các interface theo mặc định.
+
+    \item \texttt{no passive-interface <interface>}:
+    Cho phép gửi lại cập nhật RIP
+    qua interface được chỉ định.
+    Nhóm chỉ mở FastEthernet0/0 và
+    FastEthernet0/1 trên A1, A2, A3,
+    tương ứng với các liên kết L1--L3.
+
+    \item \texttt{default-information originate}:
+    Phát sinh và quảng bá default route
+    \texttt{0.0.0.0/0} vào RIP.
+    Lệnh này được cấu hình trên cả A2 và A3.
+\end{itemize}
+
+Passive interface chỉ kiểm soát việc gửi
+cập nhật trên interface đó, không tự loại
+mạng của interface khỏi các bản tin gửi
+qua interface khác. Vì vậy, Loopback0
+và LAN-A vẫn được quảng bá dù không
+gửi bản tin RIP ra các interface Loopback.
+Tương tự, các subnet của L4 và L5
+vẫn có thể xuất hiện trong bảng RIP nội bộ,
+nhưng RIP không được gửi sang ISP qua hai cổng này.
+
+\subsubsection{Cấu hình trên A1}
+
+A1 trao đổi cập nhật RIP với A2 qua L1
+và A3 qua L2. Cấu hình như sau:
+
+\begin{lstlisting}
+conf t
+router rip
+ version 2
+ no auto-summary
+ network 10.0.0.0
+ passive-interface default
+ no passive-interface FastEthernet0/0
+ no passive-interface FastEthernet0/1
+exit
+end
+write memory
+\end{lstlisting}
+
+LAN-A \texttt{10.171.126.0/26} và Loopback0
+\texttt{10.171.26.1/32} của A1 nằm trong
+phạm vi khai báo \texttt{network 10.0.0.0},
+nên được đưa vào các bản tin cập nhật
+gửi tới A2 và A3.
+
+\subsubsection{Cấu hình trên A2 và A3}
+
+A2 và A3 dùng cùng một nhóm lệnh RIP dưới đây.
+Ngoài việc trao đổi tuyến nội bộ,
+cả hai router đều có thêm lệnh
+\texttt{default-information originate}:
+
+\begin{lstlisting}
+conf t
+router rip
+ version 2
+ no auto-summary
+ network 10.0.0.0
+ passive-interface default
+ no passive-interface FastEthernet0/0
+ no passive-interface FastEthernet0/1
+ default-information originate
+exit
+end
+write memory
+\end{lstlisting}
+
+Trên A2, hai cổng được mở RIP nối tới
+A1 qua L1 và A3 qua L3.
+Trên A3, chúng nối tới A1 qua L2
+và A2 qua L3.
+Cổng FastEthernet1/0 nối sang ISP
+vẫn là passive trên cả hai router.
+
+Default route giúp A1 chuyển gói tin
+không có tuyến cụ thể tới router biên.
+Đường đi tiếp ra ISP được A2 và A3
+lựa chọn bằng BGP ở các phần sau.
+
+\subsection{Kiểm chứng kết quả}
+
+\subsubsection{Bảng định tuyến RIP trên A1}
+
+\begin{lstlisting}
+show ip route rip
+\end{lstlisting}
+
+\partzeroimage
+{images/configuration/part_B/A1_route_rip.png}
+{Các tuyến học qua RIPv2 trên A1-7126}
+{fig:partB-a1-route}
+
+Hình \ref{fig:partB-a1-route} cho thấy A1 học
+được Loopback0 của A2 là \texttt{10.171.26.2/32}
+qua next-hop \texttt{10.71.26.2},
+và Loopback0 của A3 là \texttt{10.171.26.3/32}
+qua next-hop \texttt{10.71.26.6}.
+Giá trị \texttt{[120/1]} biểu thị AD của RIP
+là 120 và metric tới các mạng này là 1 hop.
+
+A1 cũng có tuyến \texttt{R* 0.0.0.0/0}
+qua A2, với next-hop \texttt{10.71.26.2}.
+Đây là default route được ghi nhận
+tại thời điểm chụp; ảnh không thể hiện
+đồng thời default route qua A3.
+LAN-A và Loopback0 của chính A1
+là các mạng kết nối trực tiếp,
+nên không xuất hiện trong output
+\texttt{show ip route rip}.
+
+\subsubsection{Thông tin giao thức trên A2}
+
+\begin{lstlisting}
+show ip protocols
+\end{lstlisting}
+
+\partzeroimage
+{images/configuration/part_B/A2_protocols.png}
+{Thông tin giao thức RIP trên A2-7126}
+{fig:partB-a2-protocols}
+
+Hình \ref{fig:partB-a2-protocols} xác nhận
+A2 gửi và nhận RIP phiên bản 2,
+không tự động tổng hợp mạng,
+và dùng khai báo \texttt{network 10.0.0.0}.
+Hai cổng FastEthernet0/0 và FastEthernet0/1
+tham gia trao đổi cập nhật;
+FastEthernet1/0 nằm trong danh sách passive,
+nên không gửi RIP sang AS B.
+Các nguồn thông tin định tuyến
+\texttt{10.71.26.1} và \texttt{10.71.26.10}
+lần lượt tương ứng với A1 và A3.
+
+\newpage

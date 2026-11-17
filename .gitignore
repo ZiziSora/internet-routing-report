@@ -1,3 +1,7 @@
+# Compiled report and build output
+/build/
+/main.pdf
+
 # LaTeX auxiliary files
 *.aux
 *.log
