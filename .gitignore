@@ -1,0 +1,55 @@
+# LaTeX auxiliary files
+*.aux
+*.log
+*.toc
+*.lof
+*.lot
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex
+*.synctex.gz
+*.synctex(busy)
+*.synctex.gz(busy)
+*.xdv
+*.dvi
+*.nav
+*.snm
+*.vrb
+*.lol
+*.loa
+
+# Bibliography, index, and glossary output
+*.bbl
+*.blg
+*.bcf
+*.run.xml
+*.idx
+*.ind
+*.ilg
+*.glo
+*.gls
+*.glg
+*.glsdefs
+*.acn
+*.acr
+*.alg
+*.ist
+
+# Generated report (keep PDF figures elsewhere trackable)
+/main.pdf
+
+# Build directories and package caches
+/build/
+/out/
+_minted*/
+*.pyg
+
+# Editor backups and OS metadata
+*~
+*.bak
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
