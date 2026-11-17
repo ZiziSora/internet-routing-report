@@ -1,0 +1,197 @@
+% ==========================================
+% F4 - THU LOI EBGP TREN L4
+% ==========================================
+
+\section{F4 -- Thử lỗi BGP trên liên kết L4}
+\label{sec:F4}
+
+\subsection{Mục tiêu}
+
+Thử nghiệm này kiểm tra khả năng chuyển
+sang ISP C khi liên kết L4 giữa A2 và B1 bị lỗi.
+Nhóm so sánh hai trường hợp:
+chỉ tắt cổng phía A2 và tắt cổng ở cả hai đầu.
+Thời gian được đo từ lúc gây lỗi
+đến khi ping từ LAN-A tới LAN-C thông trở lại.
+
+\subsection{Cách thực hiện}
+
+Trước khi gây lỗi, mạng đã hội tụ
+và chính sách ở Phần E đang ưu tiên ISP B.
+Nhóm chạy ping liên tục từ A1,
+dùng Loopback1 làm địa chỉ nguồn:
+
+\begin{lstlisting}
+ping 10.171.126.129 source Loopback1 repeat 1000 timeout 1
+\end{lstlisting}
+
+Đồng thời, nhóm kiểm tra đường tới LAN-C
+trên A3 bằng lệnh:
+
+\begin{lstlisting}
+show ip bgp 10.171.126.128
+\end{lstlisting}
+
+\partzeroimage
+{images/testing/F4/A3_bgp_before.png}
+{Đường tới LAN-C trên A3 trước khi gây lỗi L4}
+{fig:F4-bgp-before}
+
+Hình \ref{fig:F4-bgp-before} ghi nhận
+hai đường tới LAN-C.
+A3 chọn đường qua A2 làm best path,
+với next-hop \texttt{10.171.26.2}.
+Tuyến này có LOCAL\_PREF 200
+và AS\_PATH \texttt{64726 64826}.
+Đường trực tiếp qua C1 \texttt{10.71.26.18}
+có LOCAL\_PREF 100, đóng vai trò dự phòng.
+
+\subsubsection{Chỉ tắt đầu A2}
+
+Nhóm tắt FastEthernet1/0 trên A2,
+là cổng nối sang B1 qua L4:
+
+\begin{lstlisting}
+! A2
+conf t
+interface FastEthernet1/0
+ shutdown
+end
+\end{lstlisting}
+
+Trong GNS3/Dynamips, tắt cổng phía A2
+không làm cổng phía B1 tự chuyển sang down.
+Nhóm ghi lại mốc gây lỗi và mốc ping
+xuất hiện phản hồi trở lại trên đồng hồ của bản ghi.
+
+\partzeroimage
+{images/testing/F4/one_end_failure_start.png}
+{Mốc gây lỗi khi chỉ tắt L4 phía A2: 00:00:52.972}
+{fig:F4-one-start}
+
+\partzeroimage
+{images/testing/F4/one_end_ping_recovered.png}
+{Mốc ping thông trở lại khi chỉ tắt đầu A2: 00:03:49.848}
+{fig:F4-one-recovered}
+
+Khoảng thời gian quan sát được là
+\textbf{176,876 giây}.
+Sau lần thử, cổng trên A2 được bật lại
+bằng \texttt{no shutdown}; nhóm chờ
+phiên eBGP được thiết lập và đường qua B
+được ưu tiên trở lại trước khi thử tiếp.
+
+\subsubsection{Tắt cả hai đầu L4}
+
+Nhóm thực hiện lại thử nghiệm,
+lần này tắt cả FastEthernet1/0 trên A2
+và FastEthernet0/0 trên B1:
+
+\begin{lstlisting}
+! A2
+conf t
+interface FastEthernet1/0
+ shutdown
+end
+
+! B1
+conf t
+interface FastEthernet0/0
+ shutdown
+end
+\end{lstlisting}
+
+\partzeroimage
+{images/testing/F4/both_ends_failure_start.png}
+{Mốc bắt đầu thử lỗi L4 ở cả hai đầu: 00:00:19.331}
+{fig:F4-both-start}
+
+\partzeroimage
+{images/testing/F4/both_ends_ping_recovered.png}
+{Mốc ping thông trở lại khi tắt cả hai đầu: 00:00:20.381}
+{fig:F4-both-recovered}
+
+Khoảng thời gian đo được là
+\textbf{1,050 giây}.
+Sau thử nghiệm, cả hai cổng được bật lại
+bằng \texttt{no shutdown} và mạng được
+đưa về trạng thái ổn định.
+
+\subsection{Kết quả và giải thích}
+
+\begin{table}[H]
+\centering
+\caption{Thời gian ping phục hồi trong thử nghiệm F4}
+\label{tab:F4-results}
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{X c c c}
+\toprule
+\textbf{Trường hợp} &
+\textbf{Mốc gây lỗi} &
+\textbf{Ping trở lại} &
+\textbf{Thời gian (s)} \\
+\midrule
+Chỉ tắt đầu A2 & 00:00:52.972 & 00:03:49.848 & 176,876 \\
+Tắt cả hai đầu & 00:00:19.331 & 00:00:20.381 & 1,050 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Các mốc trong Bảng \ref{tab:F4-results}
+được đọc từ đồng hồ hiển thị trong ảnh,
+không phải timestamp hệ thống của router.
+Thời gian phục hồi được tính bằng
+mốc ping trở lại trừ mốc gây lỗi.
+Các mốc thuộc những lần ghi riêng,
+nên mỗi hàng được tính độc lập.
+Đây là kết quả của từng lần đo,
+không phải giá trị trung bình qua nhiều lần thử.
+
+\partzeroimage
+{images/testing/F4/A3_bgp_after.png}
+{Đường tới LAN-C trên A3 sau khi mất đường qua ISP B}
+{fig:F4-bgp-after}
+
+Sau khi đường qua B bị rút,
+Hình \ref{fig:F4-bgp-after} chỉ còn đường
+qua C1 \texttt{10.71.26.18},
+AS\_PATH \texttt{64826}, LOCAL\_PREF 100
+và được chọn là best path.
+Như vậy, AS A đã có đường dự phòng
+đi ra LAN-C qua ISP C.
+
+Khi chỉ tắt phía A2, A2 phát hiện
+interface của mình bị down và có thể
+ngắt phiên eBGP ngay nhờ cơ chế
+BGP Fast External Fallover.
+Tuy nhiên, cổng trên B1 vẫn có thể
+ở trạng thái \texttt{up/up}.
+B1 phải chờ cơ chế TCP/BGP phát hiện
+mất kết nối, nên việc rút các route
+không còn hợp lệ có thể chậm hơn.
+
+Ping chỉ thành công khi cả đường đi
+và đường về đều hoạt động.
+Vì vậy, ngay cả khi A2/A3 đã có thể
+đổi đường đi ra sang C, đường về LAN-A
+vẫn có thể bị ảnh hưởng bởi route cũ
+qua B1--A2 chưa được rút.
+Đây là cách giải thích phù hợp với
+thời gian gián đoạn gần Hold Time 180 giây;
+hai ảnh bảng BGP không xác định riêng
+thời điểm từng router đổi tuyến.
+Do đó, 176,876 giây được ghi nhận là
+thời gian ping phục hồi hai chiều,
+không đồng nhất với thời gian riêng A2 chọn lại best path.
+
+Khi tắt cả hai đầu, cả A2 và B1
+đều thấy interface cục bộ bị down.
+Fast External Fallover cho phép ngắt
+phiên eBGP trực tiếp mà không cần chờ
+Hold Time hết hạn, giúp các route
+qua L4 được rút nhanh ở cả hai phía.
+Điều này phù hợp với kết quả ping
+phục hồi sau khoảng 1 giây.
+
+\newpage

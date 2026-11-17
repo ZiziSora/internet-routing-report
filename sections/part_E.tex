@@ -1,0 +1,258 @@
+% ==========================================
+% PHAN E - CHINH SACH BGP CHO AS A
+% ==========================================
+
+\section{Phần E -- Chính sách BGP cho AS A}
+
+\subsection{Mục tiêu}
+
+AS A có hai ISP: B nối với A2 qua L4
+và C nối với A3 qua L5.
+Nhóm cấu hình để lưu lượng đi ra ưu tiên ISP B,
+dùng ISP C làm đường dự phòng;
+đồng thời làm cho các AS khác ưu tiên
+đi vào AS A qua ISP B.
+AS A chỉ quảng bá LAN-A ra ngoài,
+không làm transit giữa hai ISP.
+
+\subsection{Triển khai cấu hình}
+
+\subsubsection{Lưu lượng đi ra ưu tiên ISP B}
+
+Nhóm dùng LOCAL\_PREF để ưu tiên
+các route học từ B đi vào A2.
+Các route này được đặt LOCAL\_PREF là 200,
+cao hơn giá trị 100 của các route học từ C.
+Thuộc tính này được trao đổi qua iBGP,
+nên A3 cũng có thể chọn đường qua A2.
+
+\textbf{Cấu hình trên A2:}
+
+\begin{lstlisting}
+conf t
+route-map FROM-B permit 10
+ set local-preference 200
+exit
+
+router bgp 64626
+ neighbor 10.71.26.14 route-map FROM-B in
+end
+\end{lstlisting}
+
+Ở đây, chính sách điều khiển lưu lượng
+đi ra nhưng route-map lại được gắn theo hướng
+\texttt{in}. Hai hướng này nói về hai việc khác nhau:
+``đi ra'' là hướng gói tin từ AS A tới mạng ngoài,
+còn \texttt{in} là hướng nhận thông tin BGP
+từ B1 vào A2.
+Nói đơn giản, để gửi gói tin ra qua B,
+AS A ưu tiên các route nhận vào từ B.
+
+Route-map \texttt{FROM-B} không có điều kiện
+\texttt{match}, nên áp dụng LOCAL\_PREF 200
+cho các route nhận từ neighbor này.
+Khi đường qua B không còn hợp lệ,
+BGP có thể chọn đường còn lại qua C.
+
+\subsubsection{Lưu lượng đi vào ưu tiên qua ISP B}
+
+Nhóm dùng AS-path prepend trên A3
+để làm đường tới LAN-A trực tiếp qua C
+bớt được ưu tiên.
+Cụ thể, A3 thêm hai lần AS 64626
+vào AS\_PATH khi quảng bá LAN-A sang C1:
+
+\begin{lstlisting}
+set as-path prepend 64626 64626
+\end{lstlisting}
+
+Ngoài AS cục bộ được thêm theo cơ chế eBGP,
+hai lần prepend này làm AS\_PATH dài hơn.
+Khi các thuộc tính ưu tiên trước AS\_PATH
+không tạo ra khác biệt, C1 sẽ ưu tiên
+đường tới LAN-A qua B thay vì trực tiếp qua A3.
+Đây là cách tác động đến lựa chọn của AS bên ngoài;
+kết quả trong mô hình được kiểm chứng
+bằng traceroute ở phần sau.
+
+\subsubsection{Chỉ quảng bá LAN-A, không làm transit}
+
+Nhóm dùng prefix-list \texttt{ONLY-A}
+để chỉ cho phép prefix LAN-A
+\texttt{10.171.126.0/26}.
+Lệnh \texttt{match ip address prefix-list}
+gắn điều kiện này vào route-map xuất sang từng ISP.
+Các prefix không khớp bị chặn bởi
+implicit deny ở cuối route-map.
+
+\textbf{Cấu hình trên A2, hướng tới ISP B:}
+
+\begin{lstlisting}
+conf t
+ip prefix-list ONLY-A seq 5 permit 10.171.126.0/26
+
+route-map TO-B permit 10
+ match ip address prefix-list ONLY-A
+exit
+
+router bgp 64626
+ neighbor 10.71.26.14 route-map TO-B out
+end
+\end{lstlisting}
+
+\textbf{Cấu hình trên A3, hướng tới ISP C:}
+
+\begin{lstlisting}
+conf t
+ip prefix-list ONLY-A seq 5 permit 10.171.126.0/26
+
+route-map TO-C permit 10
+ match ip address prefix-list ONLY-A
+ set as-path prepend 64626 64626
+exit
+
+router bgp 64626
+ neighbor 10.71.26.18 route-map TO-C out
+end
+\end{lstlisting}
+
+Route-map \texttt{TO-C} ở trên là cấu hình cuối,
+gồm cả lọc prefix và prepend.
+Khi bổ sung điều kiện \texttt{match}
+vào cùng sequence 10, lệnh \texttt{set}
+đã có vẫn được giữ lại.
+Nhờ vậy, A3 chỉ quảng bá LAN-A sang C
+và vẫn làm dài AS\_PATH của route này.
+
+AS A vẫn nhận các route từ hai ISP
+để phục vụ lưu lượng của mình,
+nhưng không quảng bá route của ISP này
+sang ISP còn lại.
+Do đó, hai ISP không học đường đi
+qua AS A tới các mạng của nhau.
+
+\subsection{Kiểm chứng kết quả}
+
+\subsubsection{Bảng BGP trước và sau chính sách}
+
+Nhóm dùng \texttt{show ip bgp} trên A2 và A3
+để so sánh lựa chọn đường đi.
+
+\partzeroimage
+{images/configuration/part_E/A2_bgp_before.png}
+{Bảng BGP trên A2 trước khi áp dụng chính sách}
+{fig:partE-a2-before}
+
+\partzeroimage
+{images/configuration/part_E/A3_bgp_before.png}
+{Bảng BGP trên A3 trước khi áp dụng chính sách}
+{fig:partE-a3-before}
+
+Trước khi áp dụng chính sách,
+A2 chọn LAN-C \texttt{10.171.126.128/26}
+qua A3, với AS\_PATH \texttt{64826},
+thay vì đường qua B có AS\_PATH
+\texttt{64726 64826}.
+A3 cũng chọn đường trực tiếp tới C1.
+Như vậy, đường ngắn hơn qua ISP C
+đang được ưu tiên tới LAN-C.
+
+\partzeroimage
+{images/configuration/part_E/A2_bgp_after.png}
+{Bảng BGP trên A2 sau khi áp dụng chính sách}
+{fig:partE-a2-after}
+
+\partzeroimage
+{images/configuration/part_E/A3_bgp_after.png}
+{Bảng BGP trên A3 sau khi áp dụng chính sách}
+{fig:partE-a3-after}
+
+Sau khi áp dụng chính sách, A2 chọn các route
+tới LAN-B, LAN-C và LAN-D qua B1
+\texttt{10.71.26.14}, với LOCAL\_PREF 200.
+Trên A3, các route tương ứng qua A2
+\texttt{10.171.26.2} cũng có LOCAL\_PREF 200
+và được đánh dấu là đường tốt nhất.
+Riêng LAN-C, đường qua C1 có LOCAL\_PREF 100
+vẫn xuất hiện trên A3 như một lựa chọn dự phòng.
+Điều này cho thấy LOCAL\_PREF cao hơn
+đã khiến đường qua B được chọn
+dù AS\_PATH dài hơn.
+
+\subsubsection{Traceroute giữa LAN-A và LAN-C}
+
+\begin{lstlisting}
+! A1
+traceroute 10.171.126.129 source 10.171.126.1
+
+! C1
+traceroute 10.171.126.1 source 10.171.126.129
+\end{lstlisting}
+
+\partzeroimage
+{images/configuration/part_E/LAN_A_C_traceroute.png}
+{Traceroute từ LAN-A tới LAN-C sau khi áp dụng chính sách}
+{fig:partE-trace-a-c}
+
+Các hop trong Hình \ref{fig:partE-trace-a-c}
+lần lượt tương ứng với A2
+(\texttt{10.71.26.2}), B1
+(\texttt{10.71.26.14}), B3
+(\texttt{10.71.26.30}) và C1
+(\texttt{10.71.26.34}).
+Lưu lượng từ LAN-A đi theo đường
+A1 $\rightarrow$ A2 $\rightarrow$ B1
+$\rightarrow$ B3 $\rightarrow$ C1,
+xác nhận chiều đi ra sử dụng ISP B.
+
+\partzeroimage
+{images/configuration/part_E/LAN_C_A_traceroute.png}
+{Traceroute từ LAN-C tới LAN-A sau khi áp dụng chính sách}
+{fig:partE-trace-c-a}
+
+Ở chiều ngược lại, các hop là B3
+(\texttt{10.71.26.33}), B1
+(\texttt{10.71.26.29}), A2
+(\texttt{10.71.26.13}) và A1
+(\texttt{10.171.126.1}).
+Kết quả cho thấy C1 đi vào AS A qua ISP B,
+phù hợp với mục tiêu của chính sách prepend.
+
+\subsubsection{Kiểm tra các route quảng bá ra ISP}
+
+\begin{lstlisting}
+! A2
+show ip bgp neighbors 10.71.26.14 advertised-routes
+
+! A3
+show ip bgp neighbors 10.71.26.18 advertised-routes
+\end{lstlisting}
+
+\partzeroimage
+{images/configuration/part_E/A2_advertised_routes.png}
+{Các prefix A2 quảng bá tới ISP B}
+{fig:partE-a2-advertised}
+
+\partzeroimage
+{images/configuration/part_E/A3_advertised_routes.png}
+{Các prefix A3 quảng bá tới ISP C}
+{fig:partE-a3-advertised}
+
+Cả hai output đều ghi \texttt{Total number of prefixes 1},
+và prefix duy nhất là LAN-A
+\texttt{10.171.126.0/26}.
+Các mạng LAN-B, LAN-C và LAN-D
+không được AS A quảng bá ra hai ISP,
+phù hợp với yêu cầu không làm transit.
+
+Hai ảnh này được dùng để kiểm chứng
+danh sách prefix quảng bá.
+Cột \texttt{Path} trong output hiện có
+không thể hiện trực tiếp AS\_PATH sau prepend
+mà C1 nhận được.
+Vì vậy, phần kiểm chứng chiều đi vào
+dựa trên cấu hình \texttt{TO-C}
+và traceroute từ C1 tới LAN-A,
+không suy ra AS\_PATH đã prepend từ hai ảnh trên.
+
+\newpage
