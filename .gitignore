@@ -1,0 +1,19 @@
+# Compiled report and build output
+/build/
+/main.pdf
+
+# LaTeX auxiliary files
+*.aux
+*.log
+*.toc
+*.lof
+*.lot
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.xdv
+*.bcf
+*.blg
+*.bbl
+*.run.xml
