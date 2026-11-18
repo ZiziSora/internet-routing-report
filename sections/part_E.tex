@@ -157,6 +157,16 @@ A3 cũng chọn đường trực tiếp tới C1.
 Như vậy, đường ngắn hơn qua ISP C
 đang được ưu tiên tới LAN-C.
 
+Đối với LAN-D, A2 có đường qua B1
+với AS\_PATH \texttt{64726}
+và đường qua A3 với AS\_PATH \texttt{64826}.
+Khi các thuộc tính ưu tiên trước đó bằng nhau,
+A2 chọn đường eBGP trực tiếp qua B1.
+Trên A3, đường tới LAN-D được chọn
+là eBGP trực tiếp qua C1.
+Vì vậy, trước policy, hai router biên
+có thể chọn hai ISP khác nhau cho cùng một LAN.
+
 \partzeroimage
 {images/configuration/part_E/A2_bgp_after.png}
 {Bảng BGP trên A2 sau khi áp dụng chính sách}
@@ -173,9 +183,13 @@ tới LAN-B, LAN-C và LAN-D qua B1
 Trên A3, các route tương ứng qua A2
 \texttt{10.171.26.2} cũng có LOCAL\_PREF 200
 và được đánh dấu là đường tốt nhất.
+Đối với LAN-D, AS\_PATH của đường qua B
+trên cả A2 và A3 là \texttt{64726},
+cho thấy AS B quảng bá tuyến LAN-D
+do chính AS này phát sinh.
 Riêng LAN-C, đường qua C1 có LOCAL\_PREF 100
 vẫn xuất hiện trên A3 như một lựa chọn dự phòng.
-Điều này cho thấy LOCAL\_PREF cao hơn
+Với LAN-C, LOCAL\_PREF cao hơn
 đã khiến đường qua B được chọn
 dù AS\_PATH dài hơn.
 

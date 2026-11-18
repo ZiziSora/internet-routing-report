@@ -491,8 +491,14 @@ B2 & B3 & iBGP & Established \\
 \end{tabular}
 \end{table}
 
-% Anh bang chung BGP Summary
-% Doi ten anh theo file thuc te tren Overleaf
+Trong các ảnh summary dưới đây,
+tất cả các peer đều có số prefix
+ở cột \texttt{State/PfxRcd}, xác nhận các phiên
+đang ở trạng thái Established.
+A2 nhận ba prefix từ B1; ở chiều quảng bá
+từ AS A ra ngoài, B1 và C1 đều nhận một prefix
+từ router biên tương ứng của AS A.
+Mỗi router có bốn network entry trong bảng BGP.
 
 \partzeroimage
 {images/configuration/part_D/A2_summary.png}
@@ -594,6 +600,26 @@ LAN-D & 10.171.126.192/26 & B2, C1 \\
 {images/configuration/part_D/B2_bgp.png}
 {Bảng BGP trên router B2}
 {fig:partD-B2-bgp}
+
+Trên A3, bảng BGP có đủ bốn mạng LAN /26.
+LAN-B được chọn qua A2 với AS\_PATH \texttt{64726},
+còn LAN-C được chọn trực tiếp qua C1
+với AS\_PATH \texttt{64826}.
+Riêng LAN-D có hai đường hợp lệ:
+qua A2 với AS\_PATH \texttt{64726}
+và qua C1 với AS\_PATH \texttt{64826}.
+Ở thời điểm chưa áp dụng chính sách Phần E,
+A3 chọn đường eBGP trực tiếp qua C1 tới LAN-D.
+
+Trên B2, LAN-B và LAN-D đều là các tuyến
+do chính router đưa vào BGP, có Weight 32768
+và được chọn là best path.
+Next-hop của LAN-D là \texttt{10.71.26.42},
+tương ứng với D1 trong static route.
+LAN-A được học qua B1 \texttt{10.171.26.4},
+còn LAN-C được học qua B3 \texttt{10.171.26.6}.
+Hai bảng không có prefix Loopback0
+hay mạng liên kết /30 được đưa vào BGP.
 
 
 % ==========================================
