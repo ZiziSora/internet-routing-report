@@ -1,0 +1,28 @@
+\chapter{GIỚI THIỆU CHUNG}
+
+\section{Tổng quan đồ án}
+
+Đồ án \textit{Internet Routing} thuộc học phần Mạng máy tính nâng cao,
+tập trung mô phỏng hoạt động định tuyến giữa các hệ tự trị (AS)
+trên môi trường GNS3. Mô hình gồm ba AS A, B và C,
+sử dụng RIPv2, OSPF và BGP để trao đổi thông tin định tuyến
+và thiết lập kết nối giữa các mạng LAN.
+
+\section{Mục tiêu và phạm vi thực hiện}
+
+Đồ án giúp củng cố kiến thức về định tuyến nội miền, liên miền
+và cách áp dụng chính sách lựa chọn đường đi. Các nội dung chính gồm:
+\begin{itemize}
+    \item Quy hoạch địa chỉ IP, cấu hình RIPv2, OSPF và các phiên iBGP, eBGP.
+    \item Thiết lập chính sách BGP để ưu tiên đường đi và kiểm soát quảng bá tuyến.
+    \item Thử lỗi liên kết, đo thời gian khôi phục kết nối
+    và đánh giá ảnh hưởng của việc điều chỉnh timer BGP.
+    \item Sử dụng Wireshark để phân tích các bản tin BGP và RIPv2.
+\end{itemize}
+
+\section{Phương pháp thực hiện}
+
+Nhóm triển khai cấu hình theo từng giao thức, kiểm tra bảng định tuyến
+và trạng thái láng giềng trước khi thử nghiệm các tình huống lỗi.
+Kết quả được đối chiếu qua Ping, Traceroute và các gói tin bắt bằng Wireshark,
+làm cơ sở đánh giá khả năng kết nối, lựa chọn tuyến và hội tụ của mạng.

@@ -4,9 +4,9 @@
 % Nhom K = 7126
 % ==========================================================
 
-\subsection{F3 -- Thử nghiệm hội tụ OSPF}
+\section{F3 -- Thử nghiệm hội tụ OSPF}
 
-\subsubsection{Mục tiêu}
+\subsection{Mục tiêu}
 
 Thử nghiệm F3 nhằm đánh giá khả năng phát hiện sự cố,
 tính toán lại đường đi và khôi phục kết nối của giao thức
@@ -20,9 +20,9 @@ Ngoài ra, nhóm kiểm tra khả năng duy trì phiên iBGP
 giữa B1 và B3 thông qua trạng thái kết nối và
 giá trị Up/Down trước, sau sự cố.
 
-\subsubsection{Phương pháp thực hiện}
+\subsection{Phương pháp thực hiện}
 
-\paragraph{a) Chuẩn bị môi trường thử nghiệm}
+\subsubsection{a) Chuẩn bị môi trường thử nghiệm}
 
 Thử nghiệm được thực hiện trên mô hình mạng GNS3
 với ba router B1, B2 và B3 thuộc AS B,
@@ -104,7 +104,7 @@ $\rightarrow$ 10.71.26.34}
     \label{fig:f3-trace-before}
 \end{figure}
 
-\paragraph{b) Tiến hành gây lỗi}
+\subsubsection{b) Tiến hành gây lỗi}
 
 Nhóm sử dụng Wireshark để bắt gói ICMP đồng thời
 trên hai liên kết:
@@ -143,9 +143,9 @@ Quá trình được ghi hình đồng thời với đồng hồ bấm giờ
 để xác định khoảng thời gian từ khi gây lỗi đến lúc
 kết nối Ping được khôi phục.
 
-\subsubsection{Kết quả kiểm thử}
+\subsection{Kết quả kiểm thử}
 
-\paragraph{a) Kết quả Ping giữa LAN-A và LAN-C}
+\subsubsection{a) Kết quả Ping giữa LAN-A và LAN-C}
 
 Kết quả sau khi gửi 1000 gói ICMP:
 
@@ -170,7 +170,7 @@ tiếp tục hoạt động.
     \label{fig:f3-ping}
 \end{figure}
 
-\paragraph{b) Đo thời gian khôi phục kết nối}
+\subsubsection{b) Đo thời gian khôi phục kết nối}
 
 Nhóm sử dụng video ghi lại thao tác shutdown
 và thời điểm Ping bắt đầu nhận phản hồi trở lại.
@@ -216,7 +216,7 @@ Giá trị 6,49 giây là kết quả ước lượng từ
 hai khung hình video, không phải thời gian chạy
 thuật toán SPF thuần túy.
 
-\paragraph{c) Phân tích lưu lượng bằng Wireshark}
+\subsubsection{c) Phân tích lưu lượng bằng Wireshark}
 
 Để xác nhận quá trình chuyển đường, nhóm đối chiếu
 các gói ICMP trên L8 và L6.
@@ -274,7 +274,7 @@ không hoàn toàn đồng nhất với thời gian hội tụ
 OSPF, do còn chịu ảnh hưởng của thời điểm phát
 gói ICMP và quá trình chuyển tiếp lưu lượng.
 
-\paragraph{d) Kiểm tra tuyến dự phòng sau sự cố}
+\subsubsection{d) Kiểm tra tuyến dự phòng sau sự cố}
 
 Sau khi L8 bị shutdown, nhóm kiểm tra bảng định tuyến
 trên router B3 bằng lệnh:
@@ -343,7 +343,7 @@ sang tuyến dự phòng:
     \label{fig:f3-trace-after}
 \end{figure}
 
-\paragraph{e) Kiểm tra khả năng duy trì phiên iBGP}
+\subsubsection{e) Kiểm tra khả năng duy trì phiên iBGP}
 
 Nhóm sử dụng lệnh
 \texttt{show ip bgp summary}
@@ -407,7 +407,7 @@ tại hai thời điểm, kết quả không loại trừ
 tuyệt đối khả năng xảy ra một lần reset ngắn
 giữa các lần quan sát.
 
-\subsubsection{Nhận xét và đánh giá}
+\subsection{Nhận xét và đánh giá}
 
 Thử nghiệm F3 cho thấy khi liên kết L8
 giữa B1 và B3 bị shutdown tại đầu B1,

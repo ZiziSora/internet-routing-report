@@ -1,7 +1,7 @@
 
-\subsection{N6 -- Phân tích gói tin bằng Wireshark}
+\section{N6 -- Phân tích gói tin bằng Wireshark}
 
-\subsubsection{Mục tiêu}
+\subsection{Mục tiêu}
 
 Nhiệm vụ N6 nhằm phân tích hoạt động trao đổi thông tin
 định tuyến của hai giao thức BGP và RIPv2 thông qua
@@ -22,7 +22,7 @@ Cụ thể, nhóm thực hiện:
     định tuyến.
 \end{itemize}
 
-\subsubsection{Phương pháp thực hiện}
+\subsection{Phương pháp thực hiện}
 
 Nhóm sử dụng chức năng \textit{Start Capture} của GNS3
 để bắt gói tin trên hai liên kết L4 và L1,
@@ -47,7 +47,7 @@ sau đó phân tích bằng phần mềm Wireshark.
     \end{tabular}
 \end{table}
 
-\paragraph{a) Bắt gói BGP trên L4}
+\subsubsection{a) Bắt gói BGP trên L4}
 
 Liên kết L4 kết nối router A2 thuộc AS 64626
 với router B1 thuộc AS 64726.
@@ -72,7 +72,7 @@ clear ip bgp 10.71.26.13
 Lệnh được thực hiện trên router B1 sau khi
 Wireshark đã bắt đầu ghi gói tin.
 
-\paragraph{b) Bắt gói RIPv2 trên L1}
+\subsubsection{b) Bắt gói RIPv2 trên L1}
 
 Liên kết L1 kết nối hai router A1 và A2
 trong AS A, sử dụng giao thức RIPv2.
@@ -87,9 +87,9 @@ Nhóm kích hoạt chức năng bắt gói trên L1 và
 sử dụng bộ lọc \texttt{rip} để quan sát các
 bản tin cập nhật định tuyến được gửi định kỳ.
 
-\subsubsection{Kết quả phân tích}
+\subsection{Kết quả phân tích}
 
-\paragraph{a) Phân tích bản tin BGP OPEN}
+\subsubsection{a) Phân tích bản tin BGP OPEN}
 
 Bản tin OPEN được sử dụng trong giai đoạn thiết lập
 phiên BGP, cho phép hai router trao đổi các thông số
@@ -143,7 +143,7 @@ giữa hai router.
     \label{fig:n6-bgp-open}
 \end{figure}
 
-\paragraph{b) Phân tích bản tin BGP UPDATE}
+\subsubsection{b) Phân tích bản tin BGP UPDATE}
 
 Bản tin UPDATE được sử dụng để quảng bá hoặc
 thu hồi thông tin định tuyến BGP.
@@ -225,7 +225,7 @@ Bản tin này chứa trường Withdrawn Routes
 và không có Path Attributes, minh họa khả năng
 thu hồi thông tin định tuyến của giao thức BGP.
 
-\paragraph{c) Phân tích bản tin BGP KEEPALIVE}
+\subsubsection{c) Phân tích bản tin BGP KEEPALIVE}
 
 Bản tin KEEPALIVE được sử dụng để duy trì
 quan hệ BGP Neighbor khi phiên BGP đang hoạt động.
@@ -269,7 +269,7 @@ chúng đang duy trì liên lạc trong phiên BGP.
     \label{fig:n6-bgp-keepalive}
 \end{figure}
 
-\paragraph{d) Phân tích bản tin RIPv2 trên L1}
+\subsubsection{d) Phân tích bản tin RIPv2 trên L1}
 
 Kết quả Wireshark tại Frame 34 cho thấy router A2
 gửi bản tin RIPv2 Response đến địa chỉ multicast
