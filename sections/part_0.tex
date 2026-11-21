@@ -279,7 +279,11 @@ show ip interface brief
 
 \subsubsection{Kiểm tra kết nối trực tiếp trên 11 liên kết}
 
-Để kiểm tra từng liên kết /30, thực hiện \texttt{ping} từ router thứ nhất đến địa chỉ interface của router thứ hai. Bảng \ref{tab:part0-ping} nêu đầy đủ 11 phép thử cần thực hiện. Cột kết quả phải được điền dựa trên output thực tế tại GNS3.
+Nhóm kiểm tra từng liên kết /30 bằng lệnh \texttt{ping}
+từ router nguồn đến địa chỉ interface của router đích.
+Bảng \ref{tab:part0-ping} tổng hợp chiều ping,
+địa chỉ đích và kết quả của 11 phép thử,
+tương ứng với các ảnh output bên dưới.
 
 \begin{table}[H]
 \centering
@@ -295,11 +299,11 @@ L1  & A1 & A2 & 10.71.26.2  & Thành công \\
 L2  & A1 & A3 & 10.71.26.6  & Thành công \\
 L3  & A2 & A3 & 10.71.26.10 & Thành công \\
 L4  & A2 & B1 & 10.71.26.14 & Thành công \\
-L5  & A3 & C1 & 10.71.26.18 & Thành công \\
-L6  & B1 & B2 & 10.71.26.22 & Thành công \\
+L5  & C1 & A3 & 10.71.26.17 & Thành công \\
+L6  & B2 & B1 & 10.71.26.21 & Thành công \\
 L7  & B2 & B3 & 10.71.26.26 & Thành công \\
 L8  & B1 & B3 & 10.71.26.30 & Thành công \\
-L9  & B3 & C1 & 10.71.26.34 & Thành công \\
+L9  & C1 & B3 & 10.71.26.33 & Thành công \\
 L10 & C1 & D1 & 10.71.26.38 & Thành công \\
 L11 & B2 & D1 & 10.71.26.42 & Thành công \\
 \bottomrule
