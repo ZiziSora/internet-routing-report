@@ -1,58 +1,134 @@
 
-\section{F3 -- Thử nghiệm hội tụ OSPF}
+% ==========================================================
+% F3 - THU NGHIEM HOI TU OSPF
+% Nhom K = 7126
+% ==========================================================
 
-\subsection{Mục tiêu}
+\subsection{F3 -- Thử nghiệm hội tụ OSPF}
 
-Thử nghiệm F3 nhằm đánh giá khả năng phát hiện sự cố và hội tụ
-của giao thức OSPF trong AS B khi một liên kết nội bộ bị gián đoạn.
-Đồng thời, thử nghiệm kiểm tra khả năng duy trì phiên iBGP
-khi đường truyền vật lý giữa hai router bị mất kết nối.
+\subsubsection{Mục tiêu}
 
-Cụ thể, nhóm thực hiện vô hiệu hóa liên kết L8 giữa B1 và B3
-tại interface FastEthernet1/0 của B1, sau đó quan sát quá trình
-OSPF phát hiện lỗi, tính toán lại đường đi và chuyển lưu lượng
-sang tuyến dự phòng thông qua B2.
+Thử nghiệm F3 nhằm đánh giá khả năng phát hiện sự cố,
+tính toán lại đường đi và khôi phục kết nối của giao thức
+OSPF khi một liên kết nội bộ trong AS B gặp lỗi.
+
+Theo yêu cầu đề bài, nhóm thực hiện vô hiệu hóa liên kết
+L8 giữa B1 và B3 chỉ tại đầu B1, đồng thời chạy Ping
+liên tục giữa hai mạng LAN để đo thời gian khôi phục.
+
+Ngoài ra, nhóm kiểm tra khả năng duy trì phiên iBGP
+giữa B1 và B3 thông qua trạng thái kết nối và
+giá trị Up/Down trước, sau sự cố.
 
 \subsubsection{Phương pháp thực hiện}
 
-Trước khi gây lỗi, ba router B1, B2 và B3 đã được cấu hình
-OSPF Area 0 trên các liên kết L6, L7 và L8.
-Các phiên iBGP được thiết lập theo mô hình Full Mesh,
-sử dụng địa chỉ Loopback0 của từng router.
+\paragraph{a) Chuẩn bị môi trường thử nghiệm}
 
-Nhóm tiến hành thử nghiệm theo các bước sau:
+Thử nghiệm được thực hiện trên mô hình mạng GNS3
+với ba router B1, B2 và B3 thuộc AS B,
+sử dụng OSPF Area 0 trên các liên kết L6, L7 và L8.
 
-\begin{enumerate}
-    \item Kiểm tra trạng thái OSPF Neighbor và các phiên iBGP
-    bằng lệnh \texttt{show ip ospf neighbor} và
-    \texttt{show ip bgp summary}.
+Để tuân thủ yêu cầu Ping giữa hai LAN, nhóm lựa chọn:
+\begin{itemize}
+    \item LAN-A:
+    \texttt{10.171.126.0/26}, đại diện bởi Loopback1
+    của A1 (\texttt{10.171.126.1}).
 
-    \item Thực hiện Ping liên tục từ Loopback0 của B3
-    (\texttt{10.171.26.6}) đến Loopback0 của B1
-    (\texttt{10.171.26.4}).
+    \item LAN-C:
+    \texttt{10.171.126.128/26}, đại diện bởi Loopback1
+    của C1 (\texttt{10.171.126.129}).
+\end{itemize}
 
-    \item Sử dụng Wireshark để bắt gói ICMP trên liên kết L8
-    (B1--B3) và L6 (B1--B2), nhằm quan sát sự thay đổi
-    đường đi của lưu lượng.
-
-    \item Thực hiện lệnh \texttt{shutdown} trên interface
-    FastEthernet1/0 của B1 để mô phỏng sự cố L8.
-    Interface tương ứng trên B3 vẫn được giữ nguyên.
-
-    \item Theo dõi thông báo OSPF, quá trình tính toán SPF
-    và các gói ICMP để đánh giá khả năng hội tụ.
-
-    \item Kiểm tra đường đi thay thế và trạng thái phiên iBGP
-    sau khi mạng ổn định.
-\end{enumerate}
-
-Lệnh Ping được thực hiện trên B3:
+Trước khi gây lỗi, nhóm kiểm tra quan hệ OSPF trên B3:
 
 \begin{lstlisting}
-ping 10.171.26.4 source Loopback0 repeat 1000 timeout 1
+show ip ospf neighbor
 \end{lstlisting}
 
-Lệnh gây lỗi trên B1:
+Kết quả cho thấy cả hai Neighbor B1 và B2 đều
+ở trạng thái FULL, xác nhận OSPF đã thiết lập
+quan hệ láng giềng thành công.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]
+    {images/testing/F3/f3_01_ospf_before.png}
+    \caption{Trạng thái OSPF Neighbor trên B3
+    trước khi xảy ra sự cố}
+    \label{fig:f3-ospf-before}
+\end{figure}
+
+Đồng thời, nhóm kiểm tra phiên iBGP bằng lệnh:
+
+\begin{lstlisting}
+show ip bgp summary
+\end{lstlisting}
+    
+Phiên iBGP giữa B3 và B1
+(\texttt{10.171.26.4}) đang ở trạng thái
+Established với giá trị Up/Down là
+\texttt{00:00:50}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]
+    {images/testing/F3/f3_02_bgp_before.png}
+    \caption{Trạng thái iBGP trên B3 trước sự cố L8}
+    \label{fig:f3-bgp-before}
+\end{figure}
+
+Nhóm tiếp tục kiểm tra đường đi giữa LAN-A và
+LAN-C bằng lệnh trên A1:
+
+\begin{lstlisting}
+traceroute 10.171.126.129 source Loopback1
+\end{lstlisting}
+
+Kết quả ghi nhận các hop:
+
+\begin{center}
+\texttt{10.71.26.2 $\rightarrow$ 10.71.26.14
+$\rightarrow$ 10.71.26.30
+$\rightarrow$ 10.71.26.34}
+\end{center}
+
+Điều này cho thấy lưu lượng từ LAN-A đến LAN-C
+đang đi qua B1 và B3 thông qua liên kết L8.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]
+    {images/testing/F3/f3_03_trace_before.png}
+    \caption{Đường đi từ LAN-A đến LAN-C trước sự cố,
+    sử dụng liên kết L8 giữa B1 và B3}
+    \label{fig:f3-trace-before}
+\end{figure}
+
+\paragraph{b) Tiến hành gây lỗi}
+
+Nhóm sử dụng Wireshark để bắt gói ICMP đồng thời
+trên hai liên kết:
+\begin{itemize}
+    \item L8 (B1--B3): theo dõi lưu lượng trước lỗi.
+    \item L6 (B1--B2): theo dõi lưu lượng
+    trên đường dự phòng.
+\end{itemize}
+
+Bộ lọc Wireshark được sử dụng:
+
+\begin{lstlisting}
+icmp && ip.addr == 10.171.126.1 &&
+ip.addr == 10.171.126.129
+\end{lstlisting}
+
+Trên router A1, nhóm thực hiện Ping liên tục:
+
+\begin{lstlisting}
+ping 10.171.126.129 source Loopback1 repeat 1000 timeout 1
+\end{lstlisting}
+
+Trong khi Ping đang chạy, nhóm thực hiện
+shutdown liên kết L8 tại router B1:
 
 \begin{lstlisting}
 configure terminal
@@ -60,275 +136,301 @@ interface FastEthernet1/0
  shutdown
 \end{lstlisting}
 
-Để quan sát chi tiết hoạt động của OSPF, nhóm sử dụng
-các lệnh debug trên B3:
+Interface ở đầu B3 được giữ nguyên theo yêu cầu
+thử nghiệm.
 
-\begin{lstlisting}
-debug ip ospf adj
-debug ip ospf spf
-\end{lstlisting}
+Quá trình được ghi hình đồng thời với đồng hồ bấm giờ
+để xác định khoảng thời gian từ khi gây lỗi đến lúc
+kết nối Ping được khôi phục.
 
-\subsection{Kết quả kiểm thử}
+\subsubsection{Kết quả kiểm thử}
 
-\paragraph{a) Kết quả Ping và phân tích Wireshark}
+\paragraph{a) Kết quả Ping giữa LAN-A và LAN-C}
 
-Kết quả Ping từ B3 đến B1 ghi nhận 994/1000 gói ICMP
-thành công và 6 gói bị mất, tương ứng tỷ lệ thành công
-99,4\%.
-
-Trong quá trình bắt gói bằng Wireshark, nhóm ghi nhận:
+Kết quả sau khi gửi 1000 gói ICMP:
 
 \begin{itemize}
-    \item Gói ICMP Echo Reply cuối cùng trên L8 xuất hiện
-    lúc \texttt{22:03:16.415323}.
-    
-    \item Các gói ICMP Echo Request tiếp theo trên L8
-    không nhận được phản hồi trong bản ghi bắt gói.
-
-    \item Gói ICMP Echo Reply đầu tiên trên L6 sau khi
-    chuyển đường xuất hiện lúc \texttt{22:03:22.457374}.
+    \item Số gói thành công: 994/1000.
+    \item Số gói bị mất: 6.
+    \item Tỷ lệ thành công: 99,4\%.
+    \item RTT min/avg/max: 84/154/252 ms.
 \end{itemize}
 
-Khoảng thời gian giữa hai phản hồi ICMP được xác định:
+Trong quá trình thử nghiệm, một số gói ICMP
+không nhận được phản hồi khi liên kết L8 gặp lỗi.
+Sau khi định tuyến được cập nhật, kết nối Ping
+tiếp tục hoạt động.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]
+    {images/testing/F3/f3_11_ping_result.png}
+    \caption{Kết quả Ping liên tục giữa LAN-A và LAN-C
+    trong thử nghiệm F3}
+    \label{fig:f3-ping}
+\end{figure}
+
+\paragraph{b) Đo thời gian khôi phục kết nối}
+
+Nhóm sử dụng video ghi lại thao tác shutdown
+và thời điểm Ping bắt đầu nhận phản hồi trở lại.
+
+Kết quả quan sát:
+\begin{itemize}
+    \item Thời điểm thực hiện shutdown:
+    khoảng 15,22 giây trên đồng hồ.
+    \item Thời điểm Ping khôi phục:
+    khoảng 21,71 giây trên đồng hồ.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]
+    {images/testing/F3/f3_09_shutdown.png}
+    \caption{Thời điểm thực hiện shutdown L8 trên B1
+    được ghi nhận trong video}
+    \label{fig:f3-shutdown}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]
+    {images/testing/F3/f3_10_recovery.png}
+    \caption{Thời điểm kết nối Ping giữa hai LAN
+    khôi phục trong video}
+    \label{fig:f3-recovery}
+\end{figure}
+
+Thời gian khôi phục được ước lượng:
+
+\begin{equation}
+\begin{aligned}
+T_{\text{khôi phục}}
+&= t_{\text{khôi phục}} - t_{\text{gây lỗi}}\\
+&\approx 21.71 - 15.22\\
+&\approx \boxed{6.49\ \text{s}}
+\end{aligned}
+\end{equation}
+
+Giá trị 6,49 giây là kết quả ước lượng từ
+hai khung hình video, không phải thời gian chạy
+thuật toán SPF thuần túy.
+
+\paragraph{c) Phân tích lưu lượng bằng Wireshark}
+
+Để xác nhận quá trình chuyển đường, nhóm đối chiếu
+các gói ICMP trên L8 và L6.
+
+Trên L8, Echo Reply cuối cùng được quan sát tại:
+
+\begin{center}
+\texttt{08:16:52.858709}
+\end{center}
+
+Gói tin có Sequence Number bằng 87.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]
+    {images/testing/F3/f3_04_wireshark_L8.png}
+    \caption{Các gói ICMP cuối cùng quan sát được
+    trên liên kết L8}
+    \label{fig:f3-wireshark-l8}
+\end{figure}
+
+Trên L6, Echo Reply đầu tiên của luồng Ping
+được quan sát tại:
+
+\begin{center}
+\texttt{08:16:59.335256}
+\end{center}
+
+Gói tin có Sequence Number bằng 88.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]
+    {images/testing/F3/f3_05_wireshark_L6.png}
+    \caption{Các gói ICMP xuất hiện trên L6
+    khi lưu lượng sử dụng đường dự phòng}
+    \label{fig:f3-wireshark-l6}
+\end{figure}
+
+Khoảng thời gian giữa hai phản hồi quan sát được:
 
 \begin{equation}
 \begin{aligned}
 T_{\text{ICMP}}
-&= 22{:}03{:}22.457374
- - 22{:}03{:}16.415323 \\
-&= \boxed{6.042051\ \text{s}}
+&= 59.335256 - 52.858709\\
+&= \boxed{6.477\ \text{s}}
 \end{aligned}
 \end{equation}
 
-Giá trị trên phản ánh khoảng thời gian giữa hai phản hồi
-ICMP được quan sát trên hai liên kết, không phải thời gian
-hội tụ OSPF chính xác tính từ thời điểm xảy ra lỗi.
+Kết quả này phù hợp với khoảng khôi phục
+6,49 giây quan sát từ video.
 
-% Thay đường dẫn bằng ảnh Wireshark L8 của nhóm.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.95\textwidth]
-    {images/testing/F3/wireshark_L8.png}
-    \caption{Các gói ICMP cuối cùng trên liên kết L8 trước
-    khi lưu lượng bị gián đoạn}
-    \label{fig:f3-l8}
-\end{figure}
+Tuy nhiên, khoảng thời gian giữa hai Echo Reply
+không hoàn toàn đồng nhất với thời gian hội tụ
+OSPF, do còn chịu ảnh hưởng của thời điểm phát
+gói ICMP và quá trình chuyển tiếp lưu lượng.
 
-% Thay đường dẫn bằng ảnh Wireshark L6 của nhóm.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.95\textwidth]
-    {images/testing/F3/wireshark_L6.png}
-    \caption{Lưu lượng ICMP được chuyển sang liên kết L6
-    sau khi OSPF tìm được đường dự phòng}
-    \label{fig:f3-l6}
-\end{figure}
+\paragraph{d) Kiểm tra tuyến dự phòng sau sự cố}
 
-\paragraph{b) Quá trình phát hiện lỗi và tính toán SPF}
-
-Thông qua kết quả debug trên B3, nhóm ghi nhận các mốc
-thời gian trong quá trình OSPF xử lý sự cố như
-Bảng~\ref{tab:f3-spf}.
-
-\begin{table}[H]
-\centering
-\caption{Các mốc thời gian xử lý OSPF trên router B3}
-\label{tab:f3-spf}
-\renewcommand{\arraystretch}{1.3}
-\begin{tabular}{|p{8.5cm}|p{3.5cm}|}
-\hline
-\textbf{Sự kiện} & \textbf{Thời điểm} \\ \hline
-Phát hiện OSPF Neighbor B1 DOWN
-& 00:38:53.807 \\ \hline
-Lên lịch thực hiện SPF
-& 00:38:54.315 \\ \hline
-Bắt đầu chạy thuật toán SPF
-& 00:38:59.319 \\ \hline
-Tính được route mới đến Loopback0 của B1
-& 00:38:59.327 \\ \hline
-Mốc xử lý SPF cuối cùng quan sát được
-& 00:38:59.331 \\ \hline
-\end{tabular}
-\end{table}
-
-Tại thời điểm \texttt{00:38:53.807}, B3 ghi nhận
-OSPF Neighbor B1 chuyển từ trạng thái FULL sang DOWN
-do Dead Timer hết hạn:
+Sau khi L8 bị shutdown, nhóm kiểm tra bảng định tuyến
+trên router B3 bằng lệnh:
 
 \begin{lstlisting}
-%OSPF-5-ADJCHG: Process 1,
-Nbr 10.171.26.4 on FastEthernet0/1
-from FULL to DOWN,
-Neighbor Down: Dead timer expired
+show ip route 10.171.26.4
 \end{lstlisting}
 
-Sau khi phát hiện thay đổi trạng thái Neighbor,
-OSPF lên lịch chạy SPF và bắt đầu tính toán lại
-đường đi tại thời điểm \texttt{00:38:59.319}.
-
-Khoảng thời gian từ lúc phát hiện Neighbor DOWN
-đến khi tính được route thay thế tới B1 là:
-
-\begin{equation}
-\begin{aligned}
-T_{\text{route}}
-&= 59.327 - 53.807 \\
-&= \boxed{5.520\ \text{s}}
-\end{aligned}
-\end{equation}
-
-Trong đó, thời gian từ lúc bắt đầu chạy SPF đến khi
-tính được route tới B1 là:
-
-\begin{equation}
-T_{\text{SPF-route}}
-= 59.327 - 59.319
-= \boxed{0.008\ \text{s}}
-\end{equation}
-
-Như vậy, OSPF mất khoảng 5,520 giây từ khi B3
-phát hiện Neighbor DOWN đến khi ghi nhận route
-thay thế tới B1 trong log debug.
-
-Khoảng thời gian này chưa bao gồm thời gian chờ
-Dead Timer trước khi B3 phát hiện sự cố, cũng như
-độ trễ cập nhật bảng chuyển tiếp sau khi tính toán route.
-
-% Thay đường dẫn bằng ảnh log phát hiện Neighbor DOWN.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.95\textwidth]
-    {images/testing/F3/ospf_neighbor_down.png}
-    \caption{B3 phát hiện OSPF Neighbor B1 chuyển
-    từ FULL sang DOWN và lên lịch chạy SPF}
-    \label{fig:f3-neighbor-down}
-\end{figure}
-
-\paragraph{c) Kết quả chuyển sang đường dự phòng}
-
-Kết quả debug SPF trên B3 ghi nhận tuyến mới đến
-Loopback0 của B1:
+Kết quả ghi nhận:
 
 \begin{lstlisting}
-OSPF: Added Network Route to 10.171.26.4
-Mask /32, Metric: 21,
-Next Hop: 10.71.26.25
+Routing entry for 10.171.26.4/32
+Known via "ospf 1", distance 110,
+metric 21, type intra area
+
+Last update from 10.71.26.25
+on FastEthernet0/0
 \end{lstlisting}
 
-Trong đó, địa chỉ \texttt{10.71.26.25} là địa chỉ
-interface của B2 trên liên kết L7.
+Trong đó, \texttt{10.71.26.25} là địa chỉ
+của B2 trên liên kết L7.
 
-Điều này cho thấy B3 đã tính toán được đường đi
-thay thế:
+Điều này cho thấy B3 đã xác định được đường
+đi thay thế đến Loopback0 của B1 thông qua B2.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]
+    {images/testing/F3/f3_06_route_after.png}
+    \caption{B3 sử dụng next hop B2 để đi đến
+    Loopback0 của B1 sau sự cố}
+    \label{fig:f3-route-after}
+\end{figure}
+
+Kết quả traceroute từ LAN-A đến LAN-C sau lỗi:
+
+\begin{lstlisting}
+1  10.71.26.2
+2  10.71.26.14
+3  10.71.26.22
+4  10.71.26.26
+5  10.71.26.34
+\end{lstlisting}
+
+So với tuyến ban đầu, đường đi đã xuất hiện
+thêm router B2 giữa B1 và B3.
+
+Do đó, lưu lượng đã chuyển từ tuyến:
 
 \begin{center}
-\textbf{B3 $\longrightarrow$ B2 $\longrightarrow$ B1}
+\textbf{B1 $\rightarrow$ B3}
 \end{center}
 
-Thay vì sử dụng trực tiếp liên kết L8, lưu lượng
-được chuyển qua L7 và L6 để tiếp tục đến B1.
+sang tuyến dự phòng:
 
-Kết quả bắt gói Wireshark trên L6 cũng ghi nhận
-ICMP Echo Request và Echo Reply của luồng Ping
-giữa hai địa chỉ Loopback0, xác nhận tuyến dự phòng
-đã được sử dụng thành công.
+\begin{center}
+\textbf{B1 $\rightarrow$ B2 $\rightarrow$ B3}
+\end{center}
 
-% Thay đường dẫn bằng ảnh log Added Network Route.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]
-    {images/testing/F3/ospf_spf_route.png}
-    \caption{Kết quả tính toán SPF và lựa chọn
-    next hop B2 cho tuyến đến Loopback0 của B1}
-    \label{fig:f3-route}
+    \includegraphics[width=0.85\textwidth]
+    {images/testing/F3/f3_08_trace_after.png}
+    \caption{Traceroute LAN-A đến LAN-C sau lỗi L8,
+    thể hiện tuyến dự phòng qua B2}
+    \label{fig:f3-trace-after}
 \end{figure}
 
+\paragraph{e) Kiểm tra khả năng duy trì phiên iBGP}
 
+Nhóm sử dụng lệnh
+\texttt{show ip bgp summary}
+trên cùng router B3 trước và sau thử nghiệm.
 
-\paragraph{d) Kiểm tra khả năng duy trì phiên iBGP}
-
-Để đánh giá ảnh hưởng của sự cố L8 đến phiên iBGP,
-nhóm tiến hành kiểm tra trạng thái BGP trên cùng router
-B3 trước và sau khi thực hiện shutdown liên kết L8
-tại B1.
-
-Lệnh kiểm tra được sử dụng:
-
-\begin{verbatim}
-show ip bgp summary
-\end{verbatim}
-
-Kết quả được ghi nhận trong
-Bảng~\ref{tab:f3-ibgp-comparison}.
+Kết quả đối với phiên iBGP B3--B1:
 
 \begin{table}[H]
     \centering
-    \caption{So sánh trạng thái iBGP trên B3 trước và sau sự cố}
-    \label{tab:f3-ibgp-comparison}
+    \caption{So sánh trạng thái iBGP trước và sau lỗi L8}
+    \label{tab:f3-ibgp}
     \renewcommand{\arraystretch}{1.3}
     \begin{tabular}{|l|c|c|}
         \hline
-        \textbf{Thông số} &
-        \textbf{Trước shutdown} &
-        \textbf{Sau shutdown} \\
+        \textbf{Thông số}
+        & \textbf{Trước lỗi}
+        & \textbf{Sau lỗi} \\
         \hline
-        Neighbor & 10.171.26.4 & 10.171.26.4 \\
+        Neighbor
+        & 10.171.26.4
+        & 10.171.26.4 \\
         \hline
-        Up/Down & 00:05:47 & 00:06:42 \\
+        Up/Down
+        & 00:00:50
+        & 00:15:28 \\
         \hline
-        State/PfxRcd & 1 & 1 \\
+        MsgRcvd
+        & 4 & 19 \\
         \hline
-        MsgRcvd & 9 & 10 \\
+        MsgSent
+        & 4 & 19 \\
         \hline
-        MsgSent & 11 & 12 \\
+        State/PfxRcd
+        & 1 & 1 \\
         \hline
     \end{tabular}
 \end{table}
 
-\textbf{Trước khi gây lỗi:}
+Sau khi gây lỗi, phiên iBGP vẫn ở trạng thái
+Established. Giá trị Up/Down tăng từ
+\texttt{00:00:50} lên \texttt{00:15:28}.
 
-Phiên iBGP giữa B3 và B1 đang ở trạng thái
-Established, với thời gian hoạt động là
-\texttt{00:05:47}.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.95\textwidth]
-    {images/testing/F3/ibgp_before.png}
-    \caption{Trạng thái phiên iBGP trên B3
-    trước khi shutdown liên kết L8}
-    \label{fig:f3-ibgp-before}
-\end{figure}
-
-\textbf{Sau khi gây lỗi:}
-
-Kết quả kiểm tra cho thấy phiên iBGP với B1
-vẫn ở trạng thái Established, với thời gian
-Up/Down tăng lên \texttt{00:06:42}.
+Đồng thời, các bộ đếm MsgRcvd và MsgSent
+tiếp tục tăng, cho thấy hoạt động trao đổi
+bản tin BGP vẫn được ghi nhận.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]
-    {images/testing/F3/ibgp_after.png}
+    {images/testing/F3/f3_07_bgp_after.png}
     \caption{Trạng thái phiên iBGP trên B3
-    sau khi shutdown liên kết L8}
-    \label{fig:f3-ibgp-after}
+    sau khi OSPF chuyển sang tuyến dự phòng}
+    \label{fig:f3-bgp-after}
 \end{figure}
 
-\textbf{Nhận xét:}
+Các kết quả không cho thấy dấu hiệu phiên
+iBGP bị reset trong thử nghiệm.
 
-Giá trị Up/Down tăng từ 00:05:47 lên 00:06:42,
-tương ứng 55 giây, và không có dấu hiệu
-bị đặt lại trong hai lần quan sát.
+Tuy nhiên, do việc kiểm tra được thực hiện
+tại hai thời điểm, kết quả không loại trừ
+tuyệt đối khả năng xảy ra một lần reset ngắn
+giữa các lần quan sát.
 
-Đồng thời, số bản tin BGP nhận được tăng từ
-9 lên 10 và số bản tin gửi đi tăng từ 11 lên 12.
-Cột State/PfxRcd tiếp tục hiển thị giá trị 1,
-cho thấy phiên iBGP đang ở trạng thái Established.
+\subsubsection{Nhận xét và đánh giá}
 
-Kết quả này cho thấy phiên iBGP giữa B1 và B3
-được duy trì tại các thời điểm kiểm tra,
-phù hợp với cơ chế sử dụng Loopback0 để
-thiết lập phiên BGP và khả năng chuyển đường
+Thử nghiệm F3 cho thấy khi liên kết L8
+giữa B1 và B3 bị shutdown tại đầu B1,
+kết nối giữa LAN-A và LAN-C bị gián đoạn
+trong thời gian ngắn trước khi khôi phục.
+
+Kết quả đo bằng video ghi nhận thời gian
+khôi phục xấp xỉ 6,49 giây, với 994/1000
+gói Ping thành công, đạt tỷ lệ 99,4\%.
+
+Phân tích Wireshark cho thấy lưu lượng ICMP
+chuyển từ L8 sang L6. Đồng thời, bảng định tuyến
+OSPF và kết quả traceroute xác nhận tuyến
+dự phòng qua B2 đã được sử dụng.
+
+Đối với iBGP, phiên giữa B1 và B3 tiếp tục
+ở trạng thái Established tại thời điểm kiểm tra
+sau lỗi, với giá trị Up/Down tăng so với trước lỗi.
+Điều này phù hợp với cơ chế thiết lập phiên
+iBGP sử dụng Loopback0 kết hợp định tuyến
 dự phòng của OSPF.
 
+Nhìn chung, thử nghiệm chứng minh khả năng
+tự động tìm đường thay thế của OSPF khi một
+liên kết nội bộ gặp sự cố, qua đó duy trì
+khả năng kết nối giữa các mạng LAN.
