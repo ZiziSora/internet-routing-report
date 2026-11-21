@@ -1,0 +1,228 @@
+% ==========================================
+% F2 - THU LOI RIP TREN L1
+% Nhom K = 7126
+% ==========================================
+
+\section{F2 -- Thử nghiệm hội tụ RIP}
+\label{sec:F2}
+
+\subsection{Mục tiêu}
+
+Thử nghiệm F2 kiểm tra thời gian A1 bỏ các tuyến RIP qua A2
+khi liên kết L1 chỉ bị tắt ở đầu A2, đồng thời theo dõi ping
+liên tục giữa LAN-B và LAN-A. Kết quả được đối chiếu với
+các timer RIP để giải thích vì sao A1 không loại bỏ tuyến ngay
+khi cổng phía A2 bị shutdown.
+
+\subsection{Phương pháp thực hiện}
+
+\subsubsection{Chuẩn bị và theo dõi kết nối}
+
+Mô hình sử dụng RIPv2 trong AS A, gồm A1, A2 và A3.
+Liên kết L1 nối FastEthernet0/0 của A1
+(\texttt{10.71.26.1/30}) với FastEthernet0/0 của A2
+(\texttt{10.71.26.2/30}). Đường thay thế giữa hai router
+có thể đi qua A3 trên L2 và L3.
+
+Hai LAN dùng để kiểm thử là LAN-B
+\texttt{10.171.126.64/26}, đại diện bởi Loopback1 của B2
+(\texttt{10.171.126.65}), và LAN-A
+\texttt{10.171.126.0/26}, đại diện bởi Loopback1 của A1
+(\texttt{10.171.126.1}). Trên B2, nhóm chạy lệnh:
+
+\begin{lstlisting}
+B2-7126#ping 10.171.126.1 source Loopback1 repeat 2000 timeout 1
+\end{lstlisting}
+
+Lệnh gửi tối đa 2000 gói ICMP Echo Request, kích thước
+100 byte, với thời gian chờ mỗi phản hồi là 1 giây.
+Địa chỉ nguồn thuộc LAN-B, nên phép thử kiểm tra kết nối
+giữa hai LAN đúng yêu cầu Phần F.
+
+Trên A1, nhóm bật timestamp và debug để theo dõi cập nhật RIP
+cùng các thay đổi trong bảng định tuyến:
+
+\begin{lstlisting}
+A1-7126#configure terminal
+A1-7126(config)#service timestamps debug uptime
+A1-7126(config)#service timestamps log uptime
+A1-7126(config)#logging console debugging
+A1-7126(config)#end
+A1-7126#debug ip routing
+A1-7126#debug ip rip
+\end{lstlisting}
+
+\subsubsection{Gây lỗi trên L1}
+
+Trong khi ping đang chạy, nhóm chỉ tắt cổng phía A2:
+
+\begin{lstlisting}
+A2-7126#configure terminal
+A2-7126(config)#interface FastEthernet0/0
+A2-7126(config-if)#shutdown
+\end{lstlisting}
+
+Ảnh minh chứng ghi nhận cổng trên A2 chuyển sang
+trạng thái administratively down lúc \texttt{00:31:17.083}.
+Line protocol chuyển down lúc \texttt{00:31:18.083}.
+Cổng phía A1 không bị shutdown.
+Theo đặc điểm Dynamips nêu trong đề bài,
+đầu bên kia không tự thấy cổng bị tắt; vì vậy A1 phải
+phát hiện việc mất cập nhật RIP qua L1.
+
+\partzeroimage
+{images/testing/F2/one_end_failure_start.png}
+{Thử lỗi F2: shutdown L1 phía A2, bật debug trên A1
+và ping từ LAN-B tới LAN-A; đồng hồ hiển thị 00:03:25.845}
+{fig:F2-start}
+
+\subsection{Kết quả kiểm thử và giải thích}
+
+\subsubsection{A1 loại bỏ các tuyến qua A2}
+
+Trong Hình~\ref{fig:F2-start}, A1 còn nhận cập nhật qua L1
+từ A2 (\texttt{10.71.26.2}) lúc \texttt{00:31:10}.
+Sau khi A2 tắt L1, A1 vẫn nhận cập nhật qua L2
+từ A3 (\texttt{10.71.26.6}); ảnh thứ hai ghi nhận
+hoạt động này lúc \texttt{00:33:53}.
+
+\noindent\begin{minipage}{\linewidth}
+Đến \texttt{00:34:16} trên A1, log xuất hiện các dòng
+sau, trích từ ảnh minh chứng:
+
+\begin{lstlisting}
+00:34:16: RT: del 10.71.26.8/30 via 10.71.26.2, rip metric [120/1]
+00:34:16: RT: NET-RED 10.71.26.8/30
+00:34:16: RT: delete route to 10.71.26.12 via 10.71.26.2, rip metric [120/1]
+00:34:16: RT: no routes to 10.71.26.12, entering holddown
+00:34:16: RT: NET-RED 10.71.26.12/30
+00:34:16: RT: delete route to 10.171.26.2 via 10.71.26.2, rip metric [120/1]
+00:34:16: RT: no routes to 10.171.26.2, entering holddown
+00:34:16: RT: NET-RED 10.171.26.2/32
+\end{lstlisting}
+\end{minipage}
+
+Các dòng \texttt{del} và \texttt{delete route} xác nhận
+A1 bỏ đường qua next-hop A2 \texttt{10.71.26.2}.
+Đối với mạng L4 \texttt{10.71.26.12/30}
+và Loopback0 của A2 \texttt{10.171.26.2/32},
+log còn ghi nhận trạng thái \texttt{entering holddown}.
+
+
+\partzeroimage
+{images/testing/F2/one_end_routes_removed.png}
+{A1 bỏ các tuyến RIP qua A2 tại uptime 00:34:16;
+đồng hồ của bản ghi hiển thị 00:06:25.554}
+{fig:F2-routes-removed}
+
+\subsubsection{Ước lượng thời gian A1 bỏ tuyến}
+
+Nhóm sử dụng đồng hồ hiển thị ở góc trên bên trái
+của hai ảnh để ước lượng khoảng chờ:
+
+\begin{table}[H]
+\centering
+\caption{Các mốc quan sát và kết quả đo trong thử nghiệm F2}
+\label{tab:F2-results}
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{X c}
+\toprule
+\textbf{Nội dung} & \textbf{Giá trị} \\
+\midrule
+Khung hình đã ghi nhận shutdown trên A2 & 00:03:25.845 \\
+Khung hình có log A1 bỏ tuyến qua A2 & 00:06:25.554 \\
+Khoảng thời gian giữa hai khung hình & 179,709 giây \\
+Timer Invalid để đối chiếu & 180 giây \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{equation}
+\begin{aligned}
+T_{\text{bỏ tuyến}}
+&\approx (6 \times 60 + 25.554) - (3 \times 60 + 25.845)\\
+&= \boxed{179.709\ \text{s}} \approx 180\ \text{s}.
+\end{aligned}
+\end{equation}
+
+Giá trị trên là ước lượng từ hai khung hình được cung cấp,
+không phải phép đo chính xác tới mili giây của thời điểm
+thực thi lệnh và xử lý tuyến. Các timestamp uptime
+trên A1 và timestamp hệ thống trên A2 thuộc hai router
+khác nhau, nên không lấy chúng trừ trực tiếp cho nhau.
+
+\subsubsection{Đối chiếu với các timer RIP}
+
+Output \texttt{show ip protocols} trên A2 tại
+Hình~\ref{fig:partB-a2-protocols} ghi nhận bộ timer
+\texttt{30/180/180/240} giây. Ý nghĩa các timer được
+đối chiếu với tài liệu lệnh \texttt{timers basic} của Cisco.\footnote{Cisco,
+\href{https://www.cisco.com/c/en/us/td/docs/ios/iproute_rip/command/reference/irr_book/irr_rip.html}
+{Cisco IOS IP Routing: RIP Command Reference -- timers basic (RIP)}.}
+
+\begin{table}[H]
+\centering
+\caption{Các timer RIP dùng để đối chiếu thử nghiệm F2}
+\label{tab:F2-timers}
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{l c X}
+\toprule
+\textbf{Timer} & \textbf{Giá trị (s)} & \textbf{Ý nghĩa} \\
+\midrule
+Update & 30 & Chu kỳ gửi cập nhật định kỳ. \\
+Invalid & 180 & Ngưỡng không được làm mới để tuyến bị coi là không hợp lệ. \\
+Holddown & 180 & Hạn chế tiếp nhận thông tin tuyến trong giai đoạn giữ tuyến. \\
+Flush & 240 & Mốc loại bỏ thông tin tuyến cũ, tính từ lần cập nhật cuối. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Khoảng chờ gần 180 giây phù hợp với cơ chế hết hạn
+Invalid khi A1 không còn nhận cập nhật qua L1.
+Timer này tính từ lần làm mới tuyến cuối, nên thời gian
+từ lúc shutdown không nhất thiết đúng 180 giây.
+Log \texttt{entering holddown} phản ánh giai đoạn
+tuyến mất hiệu lực; không dùng kết quả này để kết luận
+Flush 240 giây đã hết hạn.
+
+\subsubsection{Kết quả theo dõi ping giữa hai LAN}
+
+Cửa sổ B2 trong hai ảnh hiển thị các dấu \texttt{!},
+cho thấy đã có các phản hồi ICMP thành công.
+Ảnh đầu còn cho thấy A1 đã có default route
+\texttt{0.0.0.0/0} qua A3 \texttt{10.71.26.6}
+trên FastEthernet0/1.
+Vì vậy, việc A1 giữ một số tuyến nội bộ qua A2
+không đồng nghĩa toàn bộ kết nối giữa hai LAN bị mất
+trong suốt khoảng chờ bỏ tuyến. Trong suốt quá trình ping, không có hiện tượng gián đoạn gây mất gói
+
+
+\subsection{Nhận xét và khôi phục cấu hình}
+
+Thử nghiệm cho thấy khi L1 chỉ bị tắt ở đầu A2,
+A1 không bỏ ngay các tuyến RIP học qua liên kết này.
+Sau khoảng 180 giây theo hai khung hình,
+debug ghi nhận A1 loại bỏ đường qua A2 và đưa
+một số tuyến vào holddown, phù hợp với timer Invalid.
+
+Để kết thúc thử nghiệm và chuẩn bị cho F3, cần bật lại
+cổng trên A2, tắt debug trên A1 và chờ mạng ổn định:
+
+\begin{lstlisting}
+! A2-7126
+configure terminal
+interface FastEthernet0/0
+ no shutdown
+end
+
+! A1-7126
+undebug all
+show ip route rip
+show ip protocols
+ping 10.171.26.2
+\end{lstlisting}
+
+
+\newpage

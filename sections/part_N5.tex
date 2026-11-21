@@ -1,0 +1,167 @@
+% ==========================================
+% N5 - DIEU KHIEN DUONG DI OSPF BANG COST
+% Nhom K = 7126
+% ==========================================
+
+\section{N5 -- Điều khiển đường đi OSPF bằng cost}
+\label{sec:N5}
+
+\subsection{Mục tiêu}
+
+Nhiệm vụ N5 điều chỉnh cost OSPF để lưu lượng từ B1
+đến B3 đi qua B2 thay vì sử dụng trực tiếp liên kết L8.
+Nhóm đối chiếu traceroute trước và sau thay đổi,
+đồng thời phân tích ảnh hưởng của đường đi nội bộ
+đến lưu lượng giữa các AS.
+
+Thử nghiệm sử dụng mô hình OSPF area 0 trong AS B
+đã triển khai ở Phần C. Hai đường giữa B1 và B3 gồm
+đường trực tiếp trên L8 và đường qua B2 trên L6, L7.
+Đích kiểm tra là Loopback0 của B3, có địa chỉ
+\texttt{10.171.26.6/32}.
+
+\subsection{Triển khai cấu hình}
+
+\subsubsection{Nguyên tắc lựa chọn đường đi}
+
+OSPF lựa chọn đường có tổng cost nhỏ hơn.
+Do đó, có thể tăng cost của cổng đi ra L8 trên B1
+để ưu tiên đường B1 $\rightarrow$ B2 $\rightarrow$ B3.
+Theo chú thích đi kèm ảnh trong tài liệu minh chứng,
+cost được thay đổi từ \textbf{1 lên 100}.
+
+Gọi $C_{\text{L6}}$ là cost từ B1 tới B2 trên L6,
+$C_{\text{L7}}$ là cost từ B2 tới B3 trên L7 và
+$C_{\text{L8}}$ là cost từ B1 tới B3 trên L8.
+Điều kiện để ưu tiên đường qua B2 là:
+
+\begin{equation}
+C_{\text{L6}} + C_{\text{L7}} < C_{\text{L8}} = 100.
+\end{equation}
+
+Khi xét đường tới Loopback0 của B3,
+hai phương án còn có cùng thành phần cost tới interface đích,
+nên thành phần này không làm thay đổi phép so sánh.
+Hai ảnh traceroute không hiển thị cost riêng của L6 và L7;
+kết quả được đánh giá qua đường đi thực tế quan sát được.
+
+\subsubsection{Cấu hình trên B1}
+
+Theo bảng quy hoạch địa chỉ, L8 nối FastEthernet1/0 của B1
+với FastEthernet0/1 của B3.
+Để đặt cost L8 phía B1 bằng 100, sử dụng cấu hình:
+
+\begin{lstlisting}
+B1-7126#configure terminal
+B1-7126(config)#interface FastEthernet1/0
+B1-7126(config-if)#ip ospf cost 100
+B1-7126(config-if)#end
+\end{lstlisting}
+
+Lệnh \texttt{ip ospf cost} đặt chi phí gửi gói qua interface.\footnote{Cisco,
+\href{https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/iproute_ospf/command/iro-cr-book/ospf-a1.html}
+{Cisco IOS IP Routing: OSPF Command Reference -- ip ospf cost}.}
+Việc tăng cost cho phép thay đổi mức ưu tiên đường đi
+trong khi vẫn duy trì liên kết L8.
+Sau khi OSPF cập nhật đường đi, chạy lại cùng lệnh traceroute
+trên B1 để so sánh với trạng thái ban đầu.
+
+\subsection{Kiểm chứng kết quả}
+
+\subsubsection{Trước khi thay đổi cost}
+
+Trên B1, nhóm kiểm tra đường tới Loopback0 của B3:
+
+\begin{lstlisting}
+B1-7126#traceroute 10.171.26.6
+\end{lstlisting}
+
+\partzeroimage
+{images/advanced/N5/B1_traceroute_before.png}
+{Traceroute từ B1 tới Loopback0 của B3 trước khi thay đổi cost}
+{fig:N5-trace-before}
+
+Hình~\ref{fig:N5-trace-before} ghi nhận một hop
+\texttt{10.71.26.30}, là địa chỉ cổng Fa0/1 của B3
+trên L8. Như vậy, đường đi ban đầu là
+\textbf{B1 $\rightarrow$ B3}, sử dụng liên kết trực tiếp L8.
+Traceroute tới địa chỉ Loopback0 có thể nhận phản hồi
+từ địa chỉ interface của router đích; ở đây,
+\texttt{10.71.26.30} vẫn thuộc B3.
+
+\subsubsection{Sau khi tăng cost lên 100}
+
+Nhóm thực hiện lại lệnh \texttt{traceroute 10.171.26.6}
+trên cùng router B1 sau khi thay đổi cost.
+
+\partzeroimage
+{images/advanced/N5/B1_traceroute_after.png}
+{Traceroute từ B1 tới B3 sau khi tăng cost L8 phía B1 lên 100}
+{fig:N5-trace-after}
+
+Hình~\ref{fig:N5-trace-after} ghi nhận hai hop:
+\begin{itemize}
+    \item Hop 1: \texttt{10.71.26.22}, địa chỉ Fa0/0
+    của B2 trên L6.
+    \item Hop 2: \texttt{10.71.26.26}, địa chỉ Fa0/0
+    của B3 trên L7.
+\end{itemize}
+
+Kết quả xác nhận đường đi đã chuyển sang
+\textbf{B1 $\rightarrow$ B2 $\rightarrow$ B3},
+sử dụng L6 và L7, đáp ứng yêu cầu N5.
+
+\begin{table}[H]
+\centering
+\caption{So sánh đường đi từ B1 tới B3 trong nhiệm vụ N5}
+\label{tab:N5-comparison}
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{l X X}
+\toprule
+\textbf{Nội dung} & \textbf{Trước thay đổi} & \textbf{Sau thay đổi} \\
+\midrule
+Cost L8 phía B1 & 1 & 100 \\
+Đường đi & B1 $\rightarrow$ B3 & B1 $\rightarrow$ B2 $\rightarrow$ B3 \\
+Liên kết sử dụng & L8 & L6, L7 \\
+Hop quan sát & \texttt{10.71.26.30} &
+\texttt{10.71.26.22}, \texttt{10.71.26.26} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Nhận xét và ảnh hưởng tới lưu lượng giữa các AS}
+
+Kết quả cho thấy OSPF có thể chọn đường đi qua thêm một router
+khi đường đó có tổng cost thấp hơn.
+Các số đo mili giây trong traceroute là thời gian phản hồi
+của từng lần thăm dò, không phải giá trị cost OSPF.
+
+Trong mô hình, B1 là router biên nối AS A qua L4,
+còn B3 nối AS C qua L9. Khi lưu lượng từ AS A tới AS C
+được BGP chọn đi xuyên AS B qua B1 và B3,
+việc điều chỉnh OSPF có thể thay đổi đoạn đường nội bộ:
+
+\begin{center}
+Trước thay đổi: A2 $\rightarrow$ B1 $\rightarrow$ B3 $\rightarrow$ C1.
+
+Sau thay đổi: A2 $\rightarrow$ B1 $\rightarrow$ B2
+$\rightarrow$ B3 $\rightarrow$ C1.
+\end{center}
+
+Với cấu hình \texttt{next-hop-self} ở Phần D,
+đường OSPF tới Loopback0 của router biên được dùng
+để phân giải next-hop iBGP. Vì vậy, điều chỉnh cost
+có thể chuyển lưu lượng từ L8 sang L6, L7 trong khi
+AS\_PATH vẫn đi qua cùng các AS.
+Đây là phân tích từ topology và cấu hình BGP;
+hai ảnh minh chứng trực tiếp xác nhận đường B1 tới B3,
+chưa có traceroute giữa hai LAN để kiểm chứng toàn tuyến.
+
+Cost được đặt trên interface theo chiều gửi.
+Nếu chỉ tăng cost phía B1, chưa thể kết luận
+chiều B3 về B1 cũng đi qua B2; chiều về có thể vẫn dùng L8.
+Việc kiểm chứng N5 vì vậy tập trung vào chiều
+B1 tới B3 đúng yêu cầu đề bài.
+
+\newpage

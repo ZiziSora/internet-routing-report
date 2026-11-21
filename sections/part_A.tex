@@ -1,0 +1,169 @@
+% ==========================================
+% PHAN A - STATIC ROUTING CHO KHACH HANG D1
+% ==========================================
+
+\section{Phần A -- Static routing cho khách hàng D1}
+\label{sec:partA}
+
+\subsection{Mục tiêu}
+
+Phần này cấu hình định tuyến tĩnh cho D1,
+là router khách hàng không chạy giao thức định tuyến động.
+D1 sử dụng default route qua C1 trên L10 làm đường chính,
+đồng thời có default route qua B2 trên L11 với AD 200
+làm đường dự phòng.
+C1 và B2 được cấu hình static route về LAN-D
+để có đường chuyển tiếp gói tin tới mạng khách hàng.
+
+Theo bảng quy hoạch của nhóm K = 7126,
+LAN-D là mạng \texttt{10.171.126.192/26},
+được mô phỏng bằng Loopback1 của D1
+với địa chỉ \texttt{10.171.126.193}.
+Hai liên kết tới D1 gồm:
+\begin{itemize}
+    \item L10: C1 (\texttt{10.71.26.37})
+    nối tới D1 (\texttt{10.71.26.38}).
+    \item L11: B2 (\texttt{10.71.26.41})
+    nối tới D1 (\texttt{10.71.26.42}).
+\end{itemize}
+
+\subsection{Triển khai cấu hình}
+
+\subsubsection{Ý nghĩa các lệnh chính}
+
+Static route được khai báo bằng lệnh:
+
+\begin{lstlisting}
+ip route <destination> <subnet-mask> <next-hop> [AD]
+\end{lstlisting}
+
+Trong đó, destination và subnet mask xác định mạng đích;
+next-hop là địa chỉ router kế tiếp.
+AD (Administrative Distance) biểu thị mức ưu tiên
+giữa các tuyến tới cùng một prefix: tuyến có AD thấp hơn
+được ưu tiên khi đủ điều kiện cài đặt vào bảng định tuyến.
+Static route không chỉ định AD sử dụng giá trị mặc định là 1.
+
+Default route sử dụng địa chỉ mạng và subnet mask
+đều bằng \texttt{0.0.0.0}, tương ứng prefix
+\texttt{0.0.0.0/0}. Router dùng tuyến này khi
+không có tuyến cụ thể hơn phù hợp với địa chỉ đích.
+Trên D1, tuyến qua C1 có AD 1,
+còn tuyến qua B2 có AD 200.
+Tuyến qua B2 là floating static route:
+chỉ được chọn khi tuyến chính không còn được cài đặt
+và đường tới next-hop dự phòng vẫn hợp lệ.
+
+\subsubsection{Cấu hình trên D1}
+
+Nhóm cấu hình hai default route trên D1 như sau:
+
+\begin{lstlisting}
+conf t
+ip route 0.0.0.0 0.0.0.0 10.71.26.37
+ip route 0.0.0.0 0.0.0.0 10.71.26.41 200
+end
+write memory
+\end{lstlisting}
+
+\subsubsection{Cấu hình đường về LAN-D trên C1 và B2}
+
+Để gói tin từ phía ISP có thể tới LAN-D,
+C1 và B2 cần static route trỏ về D1.
+Mạng đích là \texttt{10.171.126.192/26},
+có subnet mask \texttt{255.255.255.192}.
+
+\textbf{Trên C1:}
+
+\begin{lstlisting}
+conf t
+ip route 10.171.126.192 255.255.255.192 10.71.26.38
+end
+write memory
+\end{lstlisting}
+
+\textbf{Trên B2:}
+
+\begin{lstlisting}
+conf t
+ip route 10.171.126.192 255.255.255.192 10.71.26.42
+end
+write memory
+\end{lstlisting}
+
+Hai static route này cung cấp đường về mạng khách hàng
+và làm cơ sở để quảng bá LAN-D bằng BGP ở Phần D.
+
+\subsection{Kiểm chứng kết quả}
+
+\subsubsection{Kiểm tra hai default route trong cấu hình D1}
+
+Trên D1, nhóm kiểm tra các dòng cấu hình định tuyến tĩnh:
+
+\begin{lstlisting}
+show running-config | include ip route
+\end{lstlisting}
+
+\partzeroimage
+{images/configuration/part_A/D1_static.png}
+{Cấu hình default route chính và dự phòng trên D1-7126}
+{fig:partA-d1-static}
+
+Hình~\ref{fig:partA-d1-static} xác nhận D1 có đủ
+hai default route: tuyến qua C1 dùng AD mặc định là 1,
+còn tuyến qua B2 được chỉ định AD 200.
+
+\subsubsection{Kiểm tra bảng định tuyến trên D1}
+
+\begin{lstlisting}
+show ip route
+\end{lstlisting}
+
+\partzeroimage
+{images/configuration/part_A/D1_route.png}
+{Bảng định tuyến trên D1-7126 khi đường chính qua C1 đang hoạt động}
+{fig:partA-d1-route}
+
+Hình~\ref{fig:partA-d1-route} ghi nhận
+\texttt{Gateway of last resort} là \texttt{10.71.26.37}
+và tuyến đang được sử dụng:
+
+\begin{lstlisting}
+S* 0.0.0.0/0 [1/0] via 10.71.26.37
+\end{lstlisting}
+
+Ký hiệu \texttt{S} cho biết đây là static route,
+dấu \texttt{*} đánh dấu tuyến ứng viên làm default route.
+Trong \texttt{[1/0]}, giá trị 1 là AD và 0 là metric.
+Tuyến qua B2 có AD 200 vẫn nằm trong cấu hình,
+nhưng chưa được chọn vì tuyến qua C1 có AD thấp hơn.
+
+Phép thử chuyển sang default route dự phòng khi gây lỗi
+thuộc nội dung F1.
+
+\subsubsection{Kiểm tra static route về LAN-D trên C1 và B2}
+
+Trên cả C1 và B2, nhóm sử dụng lệnh:
+
+\begin{lstlisting}
+show running-config | include ip route
+\end{lstlisting}
+
+\partzeroimage
+{images/configuration/part_A/C1_static.png}
+{Static route về LAN-D trên C1-7126 qua liên kết L10}
+{fig:partA-c1-static}
+
+Hình~\ref{fig:partA-c1-static} xác nhận C1 có tuyến tới
+\texttt{10.171.126.192/26} qua next-hop
+\texttt{10.71.26.38}, là địa chỉ của D1 trên L10.
+
+\partzeroimage
+{images/configuration/part_A/B2_static.png}
+{Static route về LAN-D trên B2-7126 qua liên kết L11}
+{fig:partA-b2-static}
+
+Hình~\ref{fig:partA-b2-static} xác nhận B2 định tuyến
+LAN-D /26 qua D1 \texttt{10.71.26.42} trên L11.
+
+\newpage
